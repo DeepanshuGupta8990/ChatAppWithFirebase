@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useDispatch } from 'react-redux';
 import { setChatId } from '../features/counter/chatSlice';
 import Logout from './Logout';
+import { setCurrentChatInfo, setCurrentUserDocumentID, setUserInRedux, setUserName } from '../features/counter/userSlice';
 
 export default function SideBar({ widthVal }) {
     const [users, setUsers] = useState([]);
@@ -13,7 +14,9 @@ export default function SideBar({ widthVal }) {
     const firestore = getFirestore();
     const dispatch = useDispatch(); 
     const currentUser = useSelector(state => state.userRdx.user); 
-
+    const userName = useSelector(state => state.userRdx.name); 
+    const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
+    
     async function searchAndCreateDocument(customDocId1, customDocId2, data) {
         try {
             const customId1 = customDocId1 + "_" + customDocId2;
@@ -26,7 +29,7 @@ export default function SideBar({ widthVal }) {
             const docSnapshot2 = await getDoc(customDocRef2);
 
             if (docSnapshot1.exists() || docSnapshot2.exists()) {
-                console.log(`Document with ID '${customId1}' or ${customId2}' already exists.`);
+                // console.log(`Document with ID '${customId1}' or ${customId2}' already exists.`);
                 if (docSnapshot1.exists()) {
                     dispatch(setChatId({ id: customId1 }));
                 }
@@ -46,6 +49,8 @@ export default function SideBar({ widthVal }) {
     }
 
     async function startChat(user) {
+        // console.log(user);
+        dispatch(setCurrentChatInfo({obj:user}))
         setSelectedUser(user.userId);
         searchAndCreateDocument(user.userId, currentUser.uid, { messages: [] });
     }
@@ -61,7 +66,18 @@ export default function SideBar({ widthVal }) {
                     }));
 
                     const currentUserUid = currentUser.uid;
-                    const filteredUsers = userList.filter(user => user.userId !== currentUserUid);
+                    const filteredUsers = userList.filter((user) => {
+                        if(user.userId === currentUserUid){
+                          dispatch(setUserName({
+                            name : user.name
+                          }));
+                          dispatch(setCurrentUserDocumentID({
+                            val : user.id
+                          }))
+                        }
+                       return( user.userId !== currentUserUid );
+                    });
+                    console.log(filteredUsers)
                     setUsers(filteredUsers);
                 });
 
@@ -87,10 +103,14 @@ export default function SideBar({ widthVal }) {
                         onClick={() => startChat(user)} 
                         selected={selectedUser === user.userId}
                     >
-                        {user.name}
+                        <h2 style={{padding:'0px',margin:'0px'}}>{user.name}</h2>
+                        {
+                           user[currentUserDocumentId] && <p>{user[currentUserDocumentId].lastMez}</p>
+                        }
                     </UserItem>
                 ))}
             </UserListContainer>
+            <UserName>{userName.toUpperCase()}</UserName>
         </SideBarContainer>
     );
 }
@@ -120,19 +140,32 @@ const UserListContainer = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2px;
+    height: 90%;
+    overflow-y: auto;
 `;
 
 const UserItem = styled.div`
     padding: 10px;
     border-radius: 4px;
     cursor: pointer;
+    min-height: 82px;
     text-overflow: ellipsis;
     overflow: hidden;
     word-wrap: normal;
-    background-color: ${props => props.selected ? '#007bff' : 'transparent'};
+    background-color: ${props => props.selected ? '#007bff' : '#f8f5f5'};
     color: ${props => props.selected ? '#fff' : '#000'};
     &:hover {
         background-color: ${props => props.selected ? '#007bff' : '#f2f2f2'};
         color: ${props => props.selected ? '#fff' : '#000'};
     }
 `;
+
+const UserName = styled.h1`
+    text-align: center;
+    background-color: grey;
+    max-height: 100px;
+    margin: 0px;
+    padding: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`

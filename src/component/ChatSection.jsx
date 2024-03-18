@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
+import { getFirestore, doc, updateDoc,getDoc } from 'firebase/firestore';
 
 const ChatSectionContainer = styled.div`
   height: 90%;
@@ -16,7 +17,11 @@ const ChatSectionContainer = styled.div`
 
 const ChatSection = ({chatData}) => {
     const currentUser = useSelector(state => state.userRdx.user); 
-    console.log(chatData,currentUser)
+    // const currentUserChatInfo = useSelector(state => state.userRdx.currentChatInfo);
+    // const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
+    // console.log(currentUserChatInfo,'sdsd',currentUser,currentUserDocumentId) 
+    // console.log(chatData,currentUser)
+
   return (
     <ChatSectionContainer>
      {

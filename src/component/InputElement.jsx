@@ -36,12 +36,16 @@ export default function InputElement() {
   const [inputValue, setInputValue] = useState('');
   const currentUser = useSelector(state => state.userRdx.user); 
   let chatId = useSelector(state => state.chatRdx.chatId); 
+  const currentUserChatInfo = useSelector(state => state.userRdx.currentChatInfo);
+  const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
+  // console.log(currentUserChatInfo,'sdsd',currentUser,currentUserDocumentId) 
   // Handler function to update the input value
   const handleChange = (event) => {
     setInputValue(event.target.value);
   };
 
   // Handler function to send the message
+  const firestore = getFirestore();
   const sendMessage = async () => {
     if (inputValue.trim() === '') return; // Don't send empty messages
 
@@ -49,7 +53,6 @@ export default function InputElement() {
     const messageId = uuidv4();
 
     // Add the message to the Firestore chat document
-    const firestore = getFirestore();
     const chatDocRef = doc(firestore, 'chats', chatId);
 
     try {
@@ -75,6 +78,12 @@ export default function InputElement() {
 
       // Update the chat document with the updated messages array
       await updateDoc(chatDocRef, { messages: updatedMessages });
+      updateLastMessage(currentUserDocumentId,{
+        [currentUserChatInfo.id] : {lastMez : inputValue, by : 'me'}
+      })
+      updateLastMessage(currentUserChatInfo.id,{
+        [currentUserDocumentId] : {lastMez : inputValue, by : 'otherUser'}
+      })
     } catch (error) {
       console.error('Error adding message to Firestore:', error);
     }
@@ -89,6 +98,20 @@ export default function InputElement() {
       sendMessage();
     }
   };
+
+    const updateLastMessage = async ( documentId, newData) => {
+      try {
+        // Construct the document reference using the document ID
+        const docRef = doc(firestore, 'users', documentId);
+        
+        // Update the document with the new data
+        await updateDoc(docRef, newData);
+    
+        // console.log(`Document with ID ${documentId} updated successfully.`);
+      } catch (error) {
+        console.error('Error updating document:', error);
+      }
+    };
 
   return (
     <InputContainer>
