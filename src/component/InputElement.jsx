@@ -71,6 +71,7 @@ export default function InputElement() {
         timestamp: new Date().toISOString(),
         messageId: messageId,
         senderId : currentUser.uid,
+        messageStatus: "sent",
       };
 
       // Update the messages array by appending the new message

@@ -77,7 +77,7 @@ export default function SideBar({ widthVal }) {
                         }
                        return( user.userId !== currentUserUid );
                     });
-                    console.log(filteredUsers)
+                    // console.log(filteredUsers)
                     setUsers(filteredUsers);
                 });
 

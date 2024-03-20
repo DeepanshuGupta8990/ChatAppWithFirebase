@@ -2,6 +2,9 @@ import React from 'react';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
 import { getFirestore, doc, updateDoc,getDoc } from 'firebase/firestore';
+import DoneIcon from '@mui/icons-material/Done';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
+import Tooltip from '@mui/material/Tooltip';
 
 const ChatSectionContainer = styled.div`
   height: 90%;
@@ -31,7 +34,14 @@ const ChatSection = ({chatData}) => {
         return(
             <>
             {
-                currentUser.uid === message.senderId ? <ChatP key={message.messageId}>{message.text}</ChatP> : <ChatPother key={message.messageId}>{message.text}</ChatPother>
+                currentUser.uid === message.senderId ? <ChatP key={message.messageId}>
+                  {message.text}
+                  <MessageStatus style={{backgroundColor:`${message.messageStatus !== 'sent' ? "#69b8d2" : ""}`}}>
+                  {
+                    message.messageStatus === 'sent' ?     <Tooltip title="Unseen"><DoneIcon sx={{width:'16px'}}/></Tooltip> : <Tooltip title="Seen"><DoneAllIcon sx={{width:'16px'}}/></Tooltip>
+                  }
+                </MessageStatus>
+                  </ChatP> : <ChatPother key={message.messageId}>{message.text}</ChatPother>
             }
             </>
         )
@@ -54,6 +64,8 @@ const ChatP = styled.div`
     padding: 6px;
     white-space: normal;
     overflow-wrap: break-word;
+    position: relative;
+    padding-bottom: 20px;
 `;
 
 
@@ -67,4 +79,19 @@ const ChatPother = styled.div`
     background-color: #dbb5b5;
     min-height: 30px;
     padding: 6px;
+`
+
+const MessageStatus = styled.div`
+  position: absolute;
+  bottom: -2px;
+  right: 2px;
+  border: 1.5px solid #5c5959;
+  border-radius: 100%;
+  padding: 0px;
+  margin: 0px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `
