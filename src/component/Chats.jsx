@@ -17,7 +17,7 @@ export default function Chats({ widthVal }) {
             // console.log(countRef.current++)
             if (doc.exists()) {
                 setChatData(doc.data());
-                console.log(doc.data().messages,currentUser);
+                // console.log(doc.data().messages,currentUser);
                 let entry = false;
                 const newMessagesArray = doc.data().messages.map((message)=>{
                     if(message.senderId !== currentUser.uid){
@@ -32,7 +32,7 @@ export default function Chats({ widthVal }) {
                         return message
                     }
                 })
-                console.log(newMessagesArray);
+                // console.log(newMessagesArray);
                 if(entry){
                     console.log('updating message status',entry);
                     updateDoc(chatDocRef, { messages: newMessagesArray });
