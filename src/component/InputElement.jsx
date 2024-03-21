@@ -77,14 +77,31 @@ export default function InputElement() {
       // Update the messages array by appending the new message
       const updatedMessages = [...currentMessages, newMessage];
 
-      // Update the chat document with the updated messages array
-      await updateDoc(chatDocRef, { messages: updatedMessages });
-      updateLastMessage(currentUserDocumentId,{
-        [currentUserChatInfo.id] : {lastMez : inputValue, by : 'me'}
-      })
-      updateLastMessage(currentUserChatInfo.id,{
-        [currentUserDocumentId] : {lastMez : inputValue, by : 'otherUser'}
-      })
+      const currentUserDocRef = doc(firestore, 'users', currentUserDocumentId);
+      const otherUserDocRef = doc(firestore, 'users', currentUserChatInfo.id);
+
+      const [currentUserDoc, otherUserDoc] = await Promise.all([
+        getDoc(currentUserDocRef),
+        getDoc(otherUserDocRef)
+      ]);
+
+      if (currentUserDoc.exists() && otherUserDoc.exists()) {
+        // Both documents exist, you can now update them
+        // const currentUserData = currentUserDoc.data();
+        const otherUserData = otherUserDoc.data();
+        // console.log(otherUserData,'otherUserData');
+        // const unreadMessageCountForCurrentUser = currentUserData[currentUserChatInfo.id]?.unreadMezCount || 0;
+        const unreadMessageCountForOtherUser = otherUserData[currentUserDocumentId]?.unreadMezCount || 0;
+        // console.log(unreadMessageCountForOtherUser,'unreadMessageCountForOtherUser')
+        // Update the chat document with the updated messages array
+        await updateDoc(chatDocRef, { messages: updatedMessages });
+        updateLastMessage(currentUserDocumentId,{
+          [currentUserChatInfo.id] : {lastMez : inputValue, by : 'me', }
+        })
+        updateLastMessage(currentUserChatInfo.id,{
+          [currentUserDocumentId] : {lastMez : inputValue, by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1)}
+        })
+      }
     } catch (error) {
       console.error('Error adding message to Firestore:', error);
     }

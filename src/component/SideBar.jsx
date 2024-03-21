@@ -16,8 +16,8 @@ export default function SideBar({ widthVal }) {
     const currentUser = useSelector(state => state.userRdx.user); 
     const userName = useSelector(state => state.userRdx.name); 
     const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
-    
-    async function searchAndCreateDocument(customDocId1, customDocId2, data) {
+
+    async function searchAndCreateDocument(customDocId1, customDocId2, data, otherUserDocID) {
         try {
             const customId1 = customDocId1 + "_" + customDocId2;
             const customId2 = customDocId2 + "_" + customDocId1;
@@ -36,6 +36,14 @@ export default function SideBar({ widthVal }) {
                 if (docSnapshot2.exists()) {
                     dispatch(setChatId({ id: customId2 }));
                 }
+                const currentUserDocRef = doc(firestore, 'users', currentUserDocumentId);
+                const currentUserDocSnapshot = await getDoc(currentUserDocRef);
+                console.log(currentUserDocSnapshot.data()[otherUserDocID],'data...');
+                const currentUserData = currentUserDocSnapshot.data();
+                if(currentUserData[otherUserDocID]){
+                    currentUserData[otherUserDocID].unreadMezCount = 0;
+                    await setDoc(currentUserDocRef, currentUserData);
+                }
             } else {
                 const customDocId = `${customDocId1}_${customDocId2}`;
                 const customDocRef = doc(firestore, 'chats', customDocId);
@@ -52,7 +60,7 @@ export default function SideBar({ widthVal }) {
         // console.log(user);
         dispatch(setCurrentChatInfo({obj:user}))
         setSelectedUser(user.userId);
-        searchAndCreateDocument(user.userId, currentUser.uid, { messages: [] });
+        searchAndCreateDocument(user.userId, currentUser.uid, { messages: [] },user.id);
     }
       
     useEffect(() => {

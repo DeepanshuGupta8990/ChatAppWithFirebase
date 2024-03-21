@@ -1,5 +1,5 @@
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc,doc, setDoc } from "firebase/firestore";
 import { useState } from "react";
 import styled from 'styled-components';
 import { useNavigate,Link  } from "react-router-dom";
@@ -20,24 +20,25 @@ const SignUp = () => {
       setIsSigningUp(true);
       // Create user with Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log(userCredential)
+      console.log(userCredential);
       // Get the newly created user's ID
       const userId = userCredential.user.uid;
-
-      // Create user document in Firestore
-      await addDoc(collection(firestore, 'users'), {
+  
+      // Create user document in Firestore with custom ID
+      const userDocRef = doc(collection(firestore, 'users'), userId);
+      await setDoc(userDocRef, {
         userId,
         name, // Add name to Firestore document
         email
         // Add any other user data you want to store in the document
       });
-
+  
       // Clear input fields and reset error state
       setName('');
       setEmail('');
       setPassword('');
       setError(null);
-
+  
       // Signup successful
       setIsSigningUp(false);
       console.log('User created successfully!');
@@ -49,6 +50,7 @@ const SignUp = () => {
       setIsSigningUp(false);
     }
   };
+  
 
   return (
     <Container>
