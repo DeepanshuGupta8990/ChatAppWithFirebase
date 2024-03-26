@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>P2P Video Chat</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="menu">
+        <p>Your ID:</p>
+        <p id="uuid"></p>
+        <input type="text" id="peerIdInput" placeholder="Peer ID" />
+        <button onclick="callUser()">Connect</button>
+    </div>
+    <div id="live">
+        <video id="remote-video" autoplay></video>
+        <video id="local-video" muted="true" autoplay></video>
+        <button id="end-call" onclick="endCall()">End Call</button>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+        const peer = new Peer({
+            iceServers: [
+                { urls: ["stun:stun.l.google.com:19302"] },
+                { urls: ["turn:numb.viagenie.ca"] },
+            ],
+        });
+        let currentCall;
+
+        peer.on("open", function (id) {
+            document.getElementById("uuid").textContent = id;
+        });
+
+        async function callUser() {
+            const peerId = document.getElementById("peerIdInput").value;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true,
+                });
+
+                document.getElementById("menu").style.display = "none";
+                document.getElementById("live").style.display = "block";
+                document.getElementById("local-video").srcObject = stream;
+
+                const call = peer.call(peerId, stream);
+
+                call.on("stream", (remoteStream) => {
+                    document.getElementById("remote-video").srcObject = remoteStream;
+                });
+
+                call.on("error", (err) => {
+                    console.error("Call error:", err);
+                    endCall();
+                });
+
+                call.on("close", () => {
+                    endCall();
+                });
+
+                currentCall = call;
+            } catch (err) {
+                console.error("Failed to access camera and microphone:", err);
+                alert("Failed to access camera and microphone. Please check your settings.");
+            }
+        }
+
+        peer.on("call", (call) => {
+            if (confirm(`Accept call from ${call.peer}?`)) {
+                navigator.mediaDevices
+                    .getUserMedia({ video: true, audio: true })
+                    .then((stream) => {
+                        document.getElementById("local-video").srcObject = stream;
+
+                        call.answer(stream);
+                        call.on("stream", (remoteStream) => {
+                            document.getElementById("remote-video").srcObject = remoteStream;
+                        });
+
+                        call.on("error", (err) => {
+                            console.error("Call error:", err);
+                            endCall();
+                        });
+
+                        call.on("close", () => {
+                            endCall();
+                        });
+
+                        currentCall = call;
+
+                        document.getElementById("menu").style.display = "none";
+                        document.getElementById("live").style.display = "block";
+                    })
+                    .catch((err) => {
+                        console.error("Failed to access camera and microphone:", err);
+                        alert("Failed to access camera and microphone. Please check your settings.");
+                    });
+            } else {
+                call.close();
+            }
+        });
+
+        function endCall() {
+            document.getElementById("menu").style.display = "block";
+            document.getElementById("live").style.display = "none";
+
+            if (currentCall) {
+                try {
+                    currentCall.close();
+                } catch (err) {
+                    console.error("Error closing the call:", err);
+                }
+                currentCall = undefined;
+            }
+        }
+    </script>
+</body>
+
+</html>
