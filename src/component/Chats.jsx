@@ -3,21 +3,32 @@ import { getFirestore, doc, onSnapshot,updateDoc } from 'firebase/firestore';
 import { useSelector } from 'react-redux';
 import InputElement from './InputElement';
 import ChatSection from './ChatSection';
+import { useDispatch } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { setLoadingBar, setLoadingPercentage } from '../features/counter/userSlice';
+
 
 export default function Chats({ widthVal }) {
     let chatID = useSelector(state => state.chatRdx.chatId); 
     const currentUser = useSelector(state => state.userRdx.user); 
     const [chatData, setChatData] = useState(null);
     // const countRef = useRef(0);
+    const dispatch = useDispatch();
     const firestore = getFirestore();
+    const isLoadingtrue = useSelector(state => state.userRdx.isLoadingtrue); 
+    const loadingPercatnge = useSelector(state => state.userRdx.loadingPercentage); 
     useEffect(() => {
         const chatDocRef = doc(firestore, 'chats', chatID);
         
-        const unsubscribe = onSnapshot(chatDocRef, (doc) => {
+        const unsubscribe = onSnapshot(chatDocRef, async(doc) => {
             // console.log(countRef.current++)
             if (doc.exists()) {
-                setChatData(doc.data());
                 // console.log(doc.data().messages,currentUser);
+                setChatData(doc.data());
+                if(isLoadingtrue){
+                    // console.log(isLoadingtrue)
+                    dispatch(setLoadingBar({val : false}));
+                }
                 let entry = false;
                 const newMessagesArray = doc.data().messages.map((message)=>{
                     if(message.senderId !== currentUser.uid){
@@ -38,6 +49,7 @@ export default function Chats({ widthVal }) {
                     updateDoc(chatDocRef, { messages: newMessagesArray });
                 }
             } else {
+                dispatch(setLoadingBar({val : false}));
                 setChatData(null); // Document doesn't exist
             }
         });
@@ -47,6 +59,7 @@ export default function Chats({ widthVal }) {
 
     return (
         <div style={{ width: widthVal,height:"100%" }}>
+         {/* <Link to="/videoCall">VideoCall</Link> */}
             {
                 chatID === '1' 
                 ? (

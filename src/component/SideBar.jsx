@@ -2,20 +2,48 @@ import React, { useEffect, useState } from 'react';
 import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc,updateDoc } from 'firebase/firestore';
 import { useDispatch } from 'react-redux';
 import { setChatId } from '../features/counter/chatSlice';
 import Logout from './Logout';
-import { setCurrentChatInfo, setCurrentUserDocumentID, setUserInRedux, setUserName } from '../features/counter/userSlice';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { setCurrentChatInfo, setCurrentUserDocumentID, setCurretnChatUSerInfo, setLoadingBar, setUserImageUrl, setUserName } from '../features/counter/userSlice';
+import UploadImage from './UploadImage';
+import Modal from '@mui/material/Modal';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
 
 export default function SideBar({ widthVal }) {
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [open, setOpen] = useState(false);
     const firestore = getFirestore();
     const dispatch = useDispatch(); 
     const currentUser = useSelector(state => state.userRdx.user); 
+    const currentUserImageUrl = useSelector(state => state.userRdx.userImageUrl); 
     const userName = useSelector(state => state.userRdx.name); 
     const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
+    const isLoadingtrue = useSelector(state => state.userRdx.isLoadingtrue); 
+    // console.log(currentUserImageUrl,'currentUser')
+    const style = {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        minWidth: 400,
+        bgcolor: 'background.paper',
+        border: '2px solid #000',
+        boxShadow: 24,
+        p: 4,
+        display: 'flex',
+        justifyContent:"center",
+        alignItems:"center",
+        flexDirection:"column"
+    };
+    
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
 
     async function searchAndCreateDocument(customDocId1, customDocId2, data, otherUserDocID) {
         try {
@@ -58,9 +86,15 @@ export default function SideBar({ widthVal }) {
 
     async function startChat(user) {
         // console.log(user);
-        dispatch(setCurrentChatInfo({obj:user}))
+        if(!isLoadingtrue && user.userId !== selectedUser){
+            dispatch(setLoadingBar({val: true}))
+        }
         setSelectedUser(user.userId);
-        searchAndCreateDocument(user.userId, currentUser.uid, { messages: [] },user.id);
+        setTimeout(()=>{
+            dispatch(setCurretnChatUSerInfo({val:user}))
+            dispatch(setCurrentChatInfo({obj:user}))
+            searchAndCreateDocument(user.userId, currentUser.uid, { messages: [] },user.id);
+        },500)
     }
       
     useEffect(() => {
@@ -78,6 +112,9 @@ export default function SideBar({ widthVal }) {
                         if(user.userId === currentUserUid){
                           dispatch(setUserName({
                             name : user.name
+                          }));
+                          dispatch(setUserImageUrl({
+                            val: user.imageUrl || null
                           }));
                           dispatch(setCurrentUserDocumentID({
                             val : user.id
@@ -111,14 +148,38 @@ export default function SideBar({ widthVal }) {
                         onClick={() => startChat(user)} 
                         selected={selectedUser === user.userId}
                     >
-                        <h2 style={{padding:'0px',margin:'0px'}}>{user.name}</h2>
+                        <UserDiv>
                         {
-                           user[currentUserDocumentId] && <p>{user[currentUserDocumentId].lastMez}</p>
+                            user.imageUrl ? (<ImageBlock><img src={user.imageUrl} height='40px'/></ImageBlock>) : (<AccountCircleIcon fontSize='large' sx={{fontSize:"40px"}}/>)
+                        }
+                        <h2 style={{padding:'0px',margin:'0px'}}>{user.name}</h2>
+                        </UserDiv>
+                        {
+                           user[currentUserDocumentId] && <LastMez>{user[currentUserDocumentId].lastMez}</LastMez>
                         }
                     </UserItem>
                 ))}
             </UserListContainer>
-            <UserName>{userName.toUpperCase()}</UserName>
+               <Modal
+                 open={open}
+                 onClose={handleClose}
+                 aria-labelledby="modal-modal-title"
+                 aria-describedby="modal-modal-description"
+               >
+                 <Box sx={style}>
+                {
+            currentUserImageUrl ? (<img src={currentUserImageUrl} width='200px'/>) : ( <AccountCircleIcon fontSize='large'/>)
+        }
+                   <UserName>{userName.toUpperCase()}</UserName>
+                   <UploadImage collectionName={'users'} documentId={currentUser.uid}/>
+                 </Box>
+               </Modal>
+          <UserDetails onClick={handleOpen}>
+          {
+            currentUserImageUrl ? (<ImageBlock><img src={currentUserImageUrl} height='50px'/></ImageBlock>) : ( <AccountCircleIcon fontSize='large'/>)
+          }
+          <UserName>{userName.toUpperCase()}</UserName>
+          </UserDetails>
         </SideBarContainer>
     );
 }
@@ -156,7 +217,7 @@ const UserItem = styled.div`
     padding: 10px;
     border-radius: 4px;
     cursor: pointer;
-    min-height: 82px;
+    min-height: 60px;
     text-overflow: ellipsis;
     overflow: hidden;
     word-wrap: normal;
@@ -170,10 +231,43 @@ const UserItem = styled.div`
 
 const UserName = styled.h1`
     text-align: center;
-    background-color: grey;
     max-height: 100px;
     margin: 0px;
     padding: 6px;
     overflow: hidden;
     text-overflow: ellipsis;
+`
+
+const LastMez = styled.div`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 25px;
+    white-space: nowrap;
+    padding-left: 50px;
+`
+
+const UserDiv = styled.div`
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+`
+
+const UserDetails = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    background-color: #e8e6e6;
+    cursor: pointer;
+`
+
+const ImageBlock = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 100%;
+    overflow: hidden;
 `

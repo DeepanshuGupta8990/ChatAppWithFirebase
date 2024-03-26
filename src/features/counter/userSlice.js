@@ -5,6 +5,10 @@ const initialState = {
   name: "",
   currentChatInfo: null,
   currentUserDocumentId : "",
+  isLoadingtrue : false,
+  loadingPercentage: 0,
+  userImageUrl : null,
+  currentChatUserInfo: {}
 }
 
 export const userSlice = createSlice({
@@ -23,11 +27,23 @@ export const userSlice = createSlice({
     },
     setCurrentUserDocumentID: (state,action) => {
       state.currentUserDocumentId = action.payload.val;
+    },
+    setLoadingBar: (state,action) => {
+      state.isLoadingtrue = action.payload.val;
+    },
+    setLoadingPercentage: (state,action) =>{
+      state.loadingPercentage = action.payload.val;
+    },
+    setUserImageUrl: (state,action) =>{
+      state.userImageUrl = action.payload.val;
+    },
+    setCurretnChatUSerInfo: (state,action) => {
+      state.currentChatUserInfo = action.payload.val
     }
   },
 })
 
 // Action creators are generated for each case reducer function
-export const { setUserInRedux,setUserName,setCurrentChatInfo,setCurrentUserDocumentID } = userSlice.actions
+export const { setUserInRedux,setUserName,setCurrentChatInfo,setCurrentUserDocumentID,setLoadingBar,setLoadingPercentage,setUserImageUrl,setCurretnChatUSerInfo } = userSlice.actions
 
 export default userSlice.reducer;
