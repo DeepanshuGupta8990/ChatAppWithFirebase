@@ -139,6 +139,10 @@ const SnackBarItem = styled(Snackbar)`
     height: 450px;
     width: 400px;
   }
+  .css-zykra6{
+    height: 450px;
+    width: 400px;
+  }
 `
 
 const StyledIconDiv = styled.div`
