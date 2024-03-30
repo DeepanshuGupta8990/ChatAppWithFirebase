@@ -13,6 +13,7 @@ import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import SideBarOptions from './SideBarOptions';
 
 export default function SideBar({ widthVal }) {
     const [users, setUsers] = useState([]);
@@ -25,6 +26,7 @@ export default function SideBar({ widthVal }) {
     const userName = useSelector(state => state.userRdx.name); 
     const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
     const isLoadingtrue = useSelector(state => state.userRdx.isLoadingtrue); 
+    const currentChatUserInfo = useSelector(state => state.userRdx.currentChatUserInfo);
     // console.log(currentUserImageUrl,'currentUser')
     const style = {
         position: 'absolute',
@@ -94,7 +96,7 @@ export default function SideBar({ widthVal }) {
             dispatch(setCurretnChatUSerInfo({val:user}))
             dispatch(setCurrentChatInfo({obj:user}))
             searchAndCreateDocument(user.userId, currentUser.uid, { messages: [] },user.id);
-        },500)
+        },400)
     }
       
     useEffect(() => {
@@ -124,6 +126,15 @@ export default function SideBar({ widthVal }) {
                     });
                     // console.log(filteredUsers)
                     setUsers(filteredUsers);
+                    const chatUser = filteredUsers.filter((user)=>{
+                        if(currentChatUserInfo.userId === user.userId ){
+                          return user;
+                        }
+                    })
+                    console.log(chatUser,'chatuser.....')
+                    if(chatUser.length>0){
+                        dispatch(setCurretnChatUSerInfo({val:chatUser[0]}))
+                    }
                 });
 
                 return unsubscribe;
@@ -137,11 +148,14 @@ export default function SideBar({ widthVal }) {
 
     return (
         <SideBarContainer style={{ width: widthVal }}>
-            <HeadingSidebar>
-                <h2>User List</h2>
-                <Logout />
-            </HeadingSidebar>
-            <UserListContainer>
+            <SideBarOptions/>
+            {/* <HeadingSidebar> */}
+                {/* <h2>User List</h2> */}
+                {/* <Logout /> */}
+            {/* </HeadingSidebar> */}
+             <UserListDiv>
+                <UserHeader/>
+             <UserListContainer>
                 {users.map(user => (
                     <UserItem 
                         key={user.id} 
@@ -152,14 +166,17 @@ export default function SideBar({ widthVal }) {
                         {
                             user.imageUrl ? (<ImageBlock><img src={user.imageUrl} height='40px'/></ImageBlock>) : (<AccountCircleIcon fontSize='large' sx={{fontSize:"40px"}}/>)
                         }
-                        <h2 style={{padding:'0px',margin:'0px'}}>{user.name}</h2>
                         </UserDiv>
+                       <div style={{display:'flex',flexDirection:'column'}}>
+                       <Typography variant="h5" component="h2" sx={{color:"black"}} style={{padding:'0px',margin:'0px'}}>{user.name}</Typography>
                         {
                            user[currentUserDocumentId] && <LastMez>{user[currentUserDocumentId].lastMez}</LastMez>
                         }
+                       </div>
                     </UserItem>
                 ))}
             </UserListContainer>
+             </UserListDiv>
                <Modal
                  open={open}
                  onClose={handleClose}
@@ -174,43 +191,52 @@ export default function SideBar({ widthVal }) {
                    <UploadImage collectionName={'users'} documentId={currentUser.uid}/>
                  </Box>
                </Modal>
-          <UserDetails onClick={handleOpen}>
+          {/* <UserDetails onClick={handleOpen}>
           {
             currentUserImageUrl ? (<ImageBlock><img src={currentUserImageUrl} height='50px'/></ImageBlock>) : ( <AccountCircleIcon fontSize='large'/>)
           }
           <UserName>{userName.toUpperCase()}</UserName>
-          </UserDetails>
+          </UserDetails> */}
         </SideBarContainer>
     );
 }
 
 const SideBarContainer = styled.div`
     display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
+    flex-direction: row;
+    /* justify-content: ; */
     height: 100%;
 `;
 
-const HeadingSidebar = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 2px solid grey;
-    @media (max-width: 700px) {
-     flex-direction: column;
-     justify-content: center;
-     align-items: center;
-    }
-`;
+// const HeadingSidebar = styled.div`
+//     display: flex;
+//     justify-content: space-between;
+//     align-items: center;
+//     padding: 20px;
+//     /* border-bottom: 2px solid grey; */
+//     @media (max-width: 700px) {
+//      flex-direction: column;
+//      justify-content: center;
+//      align-items: center;
+//     }
+// `;
 
 const UserListContainer = styled.div`
-    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 100%;
+    width: 100%;
+    padding-top: 50px;
+`;
+const UserListDiv = styled.div`
+    padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 2px;
     height: 90%;
     overflow-y: auto;
+    width: 100%;
 `;
 
 const UserItem = styled.div`
@@ -221,6 +247,10 @@ const UserItem = styled.div`
     text-overflow: ellipsis;
     overflow: hidden;
     word-wrap: normal;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    padding-bottom: 0px;
     background-color: ${props => props.selected ? '#007bff' : '#f8f5f5'};
     color: ${props => props.selected ? '#fff' : '#000'};
     &:hover {
@@ -243,7 +273,6 @@ const LastMez = styled.div`
     text-overflow: ellipsis;
     max-height: 25px;
     white-space: nowrap;
-    padding-left: 50px;
 `
 
 const UserDiv = styled.div`
@@ -270,4 +299,14 @@ const ImageBlock = styled.div`
     height: 40px;
     border-radius: 100%;
     overflow: hidden;
+`
+
+const UserHeader = styled.div`
+  width: 100%;
+  height: 50px;
+  background-color: #f3f3f3;
+  z-index: 100;
+  position: absolute;
+  top: 0px;
+  left: 0px;
 `

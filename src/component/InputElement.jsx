@@ -5,6 +5,10 @@ import { getFirestore, doc, updateDoc, getDoc } from 'firebase/firestore';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import CloseIcon from '@mui/icons-material/Close';
+import Modal from '@mui/material/Modal';
+import Box from '@mui/material/Box';
+import ImageSlider from './ImageSlider';
 
 const InputContainer = styled.div`
   display: flex;
@@ -55,12 +59,13 @@ const ImagePreview = styled.img`
   width: 200px; /* Set width as needed */
   height: auto; /* Maintain aspect ratio */
   margin-right: 10px;
+  border: 1px solid black;
 `;
 
 const UploadImageCont = styled.div`
   position: absolute;
-  bottom: 60px;
-  right: 50px;
+  bottom: 4px;
+  /* right: 50px; */
   display: flex;
   flex-direction: column-reverse;
   justify-content: center;
@@ -72,11 +77,24 @@ justify-content: center;
 align-items: center;
 flex-direction: row;
 `
+const ImageBlocks = styled.div`
+     display: flex;
+    flex-direction: row;
+    gap: 0px;
+    width: 691px;
+    height: 150px;
+    padding-top: 12px;
+    overflow: auto;
+    padding-left: 10px;
+`
 
 export default function InputElement() {
   const [inputValue, setInputValue] = useState('');
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState(''); // State to hold the URL of the selected image
+  const [imageArray,setImageArray] = useState([]);
+  const [open, setOpen] = React.useState(false);
+  const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const currentUser = useSelector(state => state.userRdx.user); 
   let chatId = useSelector(state => state.chatRdx.chatId); 
@@ -84,12 +102,29 @@ export default function InputElement() {
   const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
   const storage = getStorage();
   
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
+  const style = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: window.innerHeight*0.8,
+    bgcolor: 'background.paper',
+    border: '2px solid #000',
+    boxShadow: 24,
+    p: 4,
+  };
+  
   const handleChange = (event) => {
     setInputValue(event.target.value);
   };
 
   const handleChange1 = (e) => {
     if (e.target.files[0]) {
+      console.log(e.target.files);
+      setImageArray(Object.values(e.target.files));
       setImage(e.target.files[0]);
       const imageUrl = URL.createObjectURL(e.target.files[0]); // Create URL for selected image
       setImageUrl(imageUrl); // Set the URL to state
@@ -97,34 +132,44 @@ export default function InputElement() {
   };
 
   const handleUpload = () => {
-    if (!image) return; // No image selected
-    const storageRef = ref(storage, `images/${image.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, image);
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        // Upload progress
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log('Upload is ' + progress + '% done');
-      },
-      (error) => {
-        // Handle unsuccessful uploads
-        console.error('Error uploading image:', error);
-      },
-      () => {
-        // Handle successful uploads
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          console.log('File available at', downloadURL);
-          setImageUrl(null);
-          // Do something with the download URL if needed
-        });
-      }
-    );
+    if (!imageArray || imageArray.length === 0) return; // No images selected
+  
+    imageArray.forEach((img, index) => {
+      const storageRef = ref(storage, `images/${img.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, img);
+  
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          // Upload progress
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log(`Image ${index + 1} upload is ${progress}% done`);
+        },
+        (error) => {
+          // Handle unsuccessful uploads
+          console.error(`Error uploading image ${index + 1}:`, error);
+        },
+        () => {
+          // Handle successful uploads
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            console.log(`File ${index + 1} available at`, downloadURL);
+            sendMessage('image',downloadURL)
+            // Do something with the download URL if needed
+              fileInputRef.current.value = '';
+          });
+        }
+      );
+    });
+  
+    // Clear the imageArray state after upload
+    setImageArray([]);
   };
+  
  // Handler function to send the message
  const firestore = getFirestore();
- const sendMessage = async (messagetype) => {
-  if (inputValue.trim() === '') return; // Don't send empty messages
+ const sendMessage = async (messagetype,imageUrl) => {
+  console.log(imageUrl,'imageurlsdasdasdsadsa.ds.ad.sa.das.d.asd.as.')
+  if (inputValue.trim() === '' && messagetype === 'text') return; // Don't send empty messages
 
   // Generate unique message ID using uuid()
   const messageId = uuidv4();
@@ -147,11 +192,15 @@ export default function InputElement() {
       text: inputValue,
       timestamp: new Date().toISOString(),
       messageId: messageId,
-      senderId : currentUser.uid,
+      senderId: currentUser.uid,
       messageStatus: "sent",
-      messagetype: messagetype,
+      messagetype: messagetype
     };
-
+    
+    if (messagetype === 'image') {
+      newMessage.imageUrl = imageUrl;
+    }
+    
     // Update the messages array by appending the new message
     const updatedMessages = [...currentMessages, newMessage];
 
@@ -174,10 +223,10 @@ export default function InputElement() {
       // Update the chat document with the updated messages array
       await updateDoc(chatDocRef, { messages: updatedMessages });
       updateLastMessage(currentUserDocumentId,{
-        [currentUserChatInfo.id] : {lastMez : inputValue, by : 'me', }
+        [currentUserChatInfo.id] : {lastMez : ((messagetype==='image' && inputValue==='') ? 'Image' : inputValue), by : 'me', }
       })
       updateLastMessage(currentUserChatInfo.id,{
-        [currentUserDocumentId] : {lastMez : inputValue, by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1)}
+        [currentUserDocumentId] : {lastMez :  ((messagetype==='image' && inputValue==='') ? 'Image' : inputValue), by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1)}
       })
     }
   } catch (error) {
@@ -209,6 +258,26 @@ export default function InputElement() {
     }
   };
 
+  const clearFileInput = () => {
+    // Clear the selected files
+    fileInputRef.current.value = '';
+    setImage(null);
+    setImageUrl('');
+    setImageArray([]);
+  };
+
+  const removeImage = (imageEle)=>{
+    let filteredImageArray = imageArray.filter((imageElement)=>{
+       if(imageElement.name !== imageEle.name){
+        return imageElement
+       }
+    })
+    setImageArray(filteredImageArray)
+    if(filteredImageArray.length === 0){
+      fileInputRef.current.value = '';
+    }
+  }
+
   useEffect(() => {
 // Focus the input field when the component mounts
     inputRef.current.focus();
@@ -217,6 +286,16 @@ export default function InputElement() {
 
   return (
     <InputContainer>
+    <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <ImageSlider imageArray={imageArray}/>
+        </Box>
+      </Modal>
       <InputField 
         type="text" 
         value={inputValue} 
@@ -225,18 +304,47 @@ export default function InputElement() {
         placeholder="Enter something..." 
         ref={inputRef}
       />
-      <FileInput type="file" onChange={handleChange1} />
+      <FileInput ref={fileInputRef} type="file" onChange={handleChange1} multiple />
       <UploadButton onClick={() => document.querySelector('input[type="file"]').click()}>
         Select Image
       </UploadButton>
       <UploadImageCont>
       <ButtonCont>
-      {imageUrl && <UploadButton onClick={handleUpload}>Upload</UploadButton>}
-      {imageUrl && <UploadButton onClick={()=>{setImageUrl(null)}}>Discard</UploadButton>}
+      {imageArray.length > 0 && <UploadButton onClick={handleUpload}>Upload</UploadButton>}
+      {imageArray.length > 0 && <UploadButton onClick={()=>{clearFileInput()}}>Discard</UploadButton>}
       </ButtonCont>
-      {imageUrl && <ImagePreview src={imageUrl} alt="Selected Image" />} {/* Display the selected image */}
+      {/* {imageUrl && <ImagePreview src={imageUrl} alt="Selected Image" />}  */}
+      {imageArray.length > 0  && <ImageBlocks onClick={handleOpen}>
+      {
+        imageArray.length > 0 && (
+          <>
+          {
+            imageArray.map((imageElement)=>{
+              return  (
+                <>
+              <ImagePreview src={URL.createObjectURL(imageElement)} alt="Selected Image" />
+              <Closeicon onClick={(e)=>{e.stopPropagation(); removeImage(imageElement)}}/>
+              </>
+              )
+            })
+          }
+          </>
+        )
+      }
+      </ImageBlocks>}
       </UploadImageCont>
       <SendButton onClick={()=>{sendMessage("text")}}>Send</SendButton>
     </InputContainer>
   );
 }
+
+
+const Closeicon = styled(CloseIcon)`
+  position: relative;
+  left: -34px;
+  top: -5px;
+  border: 2px solid black;
+  background-color: white;
+  border-radius: 50%;
+  cursor: pointer;
+`

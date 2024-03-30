@@ -9,9 +9,12 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import Modal from '@mui/material/Modal';
 import { Box } from '@mui/material';
+import MyImageZoomComponent from './MyImageZoomComponent ';
+import Chip from '@mui/material/Chip';
+import ZoomPinch from './ZoomPinch';
 
 const ChatSectionContainer = styled.div`
-  height: 90%;
+  height: 86%;
   background-color: #f0f0f0; /* Example background color */
   border-radius: 8px; /* Example border radius */
   padding: 20px; /* Example padding */
@@ -19,9 +22,12 @@ const ChatSectionContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-top: 50px;
   .css-i9fmh8-MuiBackdrop-root-MuiModal-backdrop{
     background-color: red !important;
   }
+  background-image: url('/images/background2.jpg');
+  overflow-x: hidden;
 `;
 
 const style = {
@@ -37,20 +43,29 @@ const style = {
 };
 
 
-const ChatSection = ({chatData}) => {
+const ChatSection = ({chatData,widthVal}) => {
   const [open, setOpen] = useState(false);
     const chatConatinerRef = useRef(null);
     const currentUser = useSelector(state => state.userRdx.user); 
     const currentUserChatInfo = useSelector(state => state.userRdx.currentChatInfo);
     const [showArrow,setShowArrow] = useState(false);
+    const [modalImageUrl,setModalImageUrl] = useState('');
     const currentUserImageUrl = useSelector(state => state.userRdx.userImageUrl); 
     const currentChatUserInfo = useSelector(state => state.userRdx.currentChatUserInfo);
     // const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
     // console.log(currentUserChatInfo,'sdsd',currentUser,currentUserDocumentId) 
-    // console.log(currentChatUserInfo,'currentChatUserInfo')
+    console.log(currentChatUserInfo,'currentChatUserInfo')
 
-    const handleOpen = () => setOpen(true);
-    const handleClose = () => setOpen(false);
+    const handleOpen = (imageUrl) => {
+      if(imageUrl){
+        setModalImageUrl(imageUrl);
+      }
+      setOpen(true);
+    }
+    const handleClose = () => {
+      setOpen(false);
+      setModalImageUrl("")
+    }
 
     function scrollToBottom(){
       const chatContainer = chatConatinerRef.current;
@@ -81,7 +96,7 @@ const ChatSection = ({chatData}) => {
           const clientHeight = container.clientHeight;
           const scrollTop = container.scrollTop;
   
-          if (scrollHeight - clientHeight - scrollTop > 0) {
+          if (scrollHeight - clientHeight - scrollTop > 10) {
             console.log('Scroll position is not at the bottom');
             setShowArrow(true);
           }else{
@@ -111,10 +126,19 @@ const ChatSection = ({chatData}) => {
                  aria-describedby="modal-modal-description"
                  >
                   <Box sx={style}>
-                  <img src={currentChatUserInfo.imageUrl} height='400px'/>
+                  {/* <img src={currentChatUserInfo.imageUrl} height='400px'/> */}
+                  {/* <MyImageZoomComponent src={currentChatUserInfo.imageUrl}/> */}
+                  <ZoomPinch src={modalImageUrl}/>
                       <h2>{currentChatUserInfo.name}</h2>
                  </Box>
                </Modal>
+       <OtherUserInfoHeader style={{width:widthVal,left: `${100 - parseInt(widthVal.split("%")[0])}%`}}>
+       {
+         currentChatUserInfo.imageUrl ? (<ImageBlock3  onClick={()=>{handleOpen(currentChatUserInfo.imageUrl)}}><img src={currentChatUserInfo.imageUrl} height='30px'/></ImageBlock3>) : ( <ImageBlock3><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock3>)
+        }
+         <h2>{currentChatUserInfo.name}</h2>
+        <Chip sx={{background:`${currentChatUserInfo.onlineStatus==='online' ? "#aae2aa" : ""}`}} label={currentChatUserInfo.onlineStatus ? currentChatUserInfo.onlineStatus : "offline"}/>
+        </OtherUserInfoHeader>        
      {
         chatData &&
        chatData.messages && 
@@ -123,7 +147,9 @@ const ChatSection = ({chatData}) => {
             <>
             {
                 currentUser.uid === message.senderId ? (<><ChatP key={message.messageId}>
-                  {message.text}
+                  {message?.messagetype==='image' ? (
+                     <ImageBlock4  onClick={()=>{handleOpen(message.imageUrl)}}><img src={message.imageUrl} width='120px'/></ImageBlock4>
+                  ) : (message.text)}
                   <MessageStatus style={{backgroundColor:`${message.messageStatus !== 'sent' ? "#69b8d2" : ""}`}}>
                   {
                     message.messageStatus === 'sent' ?     <Tooltip title="Unseen"><DoneIcon sx={{width:'16px'}}/></Tooltip> : <Tooltip title="Seen"><DoneAllIcon sx={{width:'16px'}}/></Tooltip>
@@ -135,9 +161,11 @@ const ChatSection = ({chatData}) => {
                   </ChatP>
                    </>)  : 
                    <ChatPother key={message.messageId}>
-                    {message.text}
+                    {message?.messagetype==='image' ? (
+                      <ImageBlock4  onClick={()=>{handleOpen(message.imageUrl)}}><img src={message.imageUrl} width='120px'/></ImageBlock4>
+                    ) : (message.text)}
                     {
-                  currentChatUserInfo.imageUrl ? (<ImageBlock2 onClick={handleOpen}><img src={currentChatUserInfo.imageUrl} height='30px'/></ImageBlock2>) : ( <ImageBlock2 style={{right:"-30px"}}><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock2>)
+                  currentChatUserInfo.imageUrl ? (<ImageBlock2 onClick={()=>{handleOpen(currentChatUserInfo.imageUrl)}}><img src={currentChatUserInfo.imageUrl} height='30px'/></ImageBlock2>) : ( <ImageBlock2 style={{right:"-30px"}}><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock2>)
                   }
                     </ChatPother>
             }
@@ -236,4 +264,35 @@ const ImageBlock2 = styled.div`
     position: absolute;
     left: -40px;
     bottom: 0px;
+`
+const ImageBlock3 = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 100%;
+    overflow: hidden;
+`
+const ImageBlock4 = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 120px;
+    /* height: 150px; */
+    /* border-radius: 100%; */
+    overflow: hidden;
+`
+const OtherUserInfoHeader = styled.div`
+  width: 100%;
+  height: 50px;
+  background-color: #f3f3f3;
+  position: absolute;
+  top: 0px;
+  z-index: 103;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
 `

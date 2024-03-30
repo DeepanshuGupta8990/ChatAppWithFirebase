@@ -63,13 +63,13 @@ export default function Chats({ widthVal }) {
             {
                 chatID === '1' 
                 ? (
-                    <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100%',borderLeft:"2px solid grey"}}>
+                    <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100%'}}>
                         <p>Please select user to chat </p>
                     </div>
                 ) :
                 (
                     <>
-                        <ChatSection chatData={chatData}/>
+                        <ChatSection chatData={chatData} widthVal={widthVal}/>
                         <InputElement/>
                     </>
                 )
