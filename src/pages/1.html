@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -122,4 +122,126 @@
     </script>
 </body>
 
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Uploader</title>
+<style>
+  #thumbnail img{
+    width: 400px;
+  }
+</style>
+</head>
+<body>
+
+<input type="file" id="fileInput">
+<div id="originalImage"></div>
+<div id="thumbnail"></div>
+
+<script>
+document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const originalImageDiv = document.getElementById('originalImage');
+      originalImageDiv.innerHTML = '<h3>Original Image</h3><img src="' + e.target.result + '" style="max-width: 40%;">';
+      generateThumbnail(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function generateThumbnail(imageData) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  img.onload = function() {
+    const width = 100; // Define your thumbnail width
+    const height = (img.height / img.width) * width;
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(img, 0, 0, width, height);
+    const thumbDataUrl = canvas.toDataURL('image/jpeg');
+    const thumbnailDiv = document.getElementById('thumbnail');
+    thumbnailDiv.innerHTML = '<h3>Thumbnail</h3><img src="' + thumbDataUrl + '" style="max-width: 100%;">';
+  };
+  img.src = imageData;
+}
+</script>
+
+</body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 
+import React, { useState } from 'react';
+
+function ImageUploader() {
+  const [originalImage, setOriginalImage] = useState(null);
+  const [thumbnail, setThumbnail] = useState(null);
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setOriginalImage(e.target.result);
+        generateThumbnail(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const generateThumbnail = (imageData) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      const width = 100; // Define your thumbnail width
+      const height = (img.height / img.width) * width;
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+      const thumbDataUrl = canvas.toDataURL('image/jpeg');
+      setThumbnail(thumbDataUrl);
+    };
+    img.src = imageData;
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={handleFileChange} />
+      {originalImage && (
+        <div>
+          <h3>Original Image</h3>
+          <img src={originalImage} alt="Original" style={{ maxWidth: '100%' }} />
+        </div>
+      )}
+      {thumbnail && (
+        <div>
+          <h3>Thumbnail</h3>
+          <img src={thumbnail} alt="Thumbnail" style={{ maxWidth: '100%' }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default ImageUploader; -->

@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import SignUp from './pages/SignUp';
 import {app} from './firebase';
 import VideoCall from './pages/VideoCall';
+import 'prismjs/themes/prism.css';
 
 function App() {
   return (

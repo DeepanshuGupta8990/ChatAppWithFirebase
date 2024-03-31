@@ -13,9 +13,10 @@ import ImageSlider from './ImageSlider';
 const InputContainer = styled.div`
   display: flex;
   margin-bottom: 10px;
+  padding-inline: 10px;
 `;
 
-const InputField = styled.input`
+const InputField = styled.textarea`
   flex: 1;
   padding: 8px;
   border: 1px solid #ccc;
@@ -116,6 +117,24 @@ export default function InputElement() {
     boxShadow: 24,
     p: 4,
   };
+
+  function isCodeSnippet(message) {
+    // Regular expressions to match common JavaScript syntax patterns
+    const codePatterns = [
+      /function\s+\w*\s*\([^)]*\)\s*{[^}]*}/, // Function declaration
+      /async\s+function\s+\w*\s*\([^)]*\)\s*{[^}]*}/, // Async function declaration
+      /const\s+\w+\s*=\s*.*/, // Variable declaration
+      /let\s+\w+\s*=\s*.*/, // Variable declaration
+      /var\s+\w+\s*=\s*.*/, // Variable declaration
+      /\bfor\s*\([^)]*\)\s*{[^}]*}/, // For loop
+      /\bwhile\s*\([^)]*\)\s*{[^}]*}/, // While loop
+      /\bif\s*\([^)]*\)\s*{[^}]*}/, // If statement
+      /\belse\s*{[^}]*}/, // Else statement
+    ];
+  
+    // Check if any of the code patterns match the message
+    return codePatterns.some(pattern => pattern.test(message));
+  }
   
   const handleChange = (event) => {
     setInputValue(event.target.value);
@@ -167,6 +186,7 @@ export default function InputElement() {
   
  // Handler function to send the message
  const firestore = getFirestore();
+
  const sendMessage = async (messagetype,imageUrl) => {
   console.log(imageUrl,'imageurlsdasdasdsadsa.ds.ad.sa.das.d.asd.as.')
   if (inputValue.trim() === '' && messagetype === 'text') return; // Don't send empty messages
@@ -200,6 +220,13 @@ export default function InputElement() {
     if (messagetype === 'image') {
       newMessage.imageUrl = imageUrl;
     }
+
+    const isCode = isCodeSnippet(`${inputValue}`);
+    console.log(isCode,'iscodesdsdsd')
+    if(isCode){
+      newMessage.isCode = true;
+    }
+
     
     // Update the messages array by appending the new message
     const updatedMessages = [...currentMessages, newMessage];
@@ -223,10 +250,10 @@ export default function InputElement() {
       // Update the chat document with the updated messages array
       await updateDoc(chatDocRef, { messages: updatedMessages });
       updateLastMessage(currentUserDocumentId,{
-        [currentUserChatInfo.id] : {lastMez : ((messagetype==='image' && inputValue==='') ? 'Image' : inputValue), by : 'me', }
+        [currentUserChatInfo.id] : {lastMez : ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue)), by : 'me', }
       })
       updateLastMessage(currentUserChatInfo.id,{
-        [currentUserDocumentId] : {lastMez :  ((messagetype==='image' && inputValue==='') ? 'Image' : inputValue), by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1)}
+        [currentUserDocumentId] : {lastMez :  ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue)), by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1)}
       })
     }
   } catch (error) {
@@ -303,6 +330,7 @@ export default function InputElement() {
         onKeyPress={handleKeyPress}
         placeholder="Enter something..." 
         ref={inputRef}
+        rows="1" // Adjust the number of rows as needed
       />
       <FileInput ref={fileInputRef} type="file" onChange={handleChange1} multiple />
       <UploadButton onClick={() => document.querySelector('input[type="file"]').click()}>
