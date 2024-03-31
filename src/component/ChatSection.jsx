@@ -12,6 +12,13 @@ import { Box } from '@mui/material';
 import MyImageZoomComponent from './MyImageZoomComponent ';
 import Chip from '@mui/material/Chip';
 import ZoomPinch from './ZoomPinch';
+import Popover from '@mui/material/Popover';
+import Typography from '@mui/material/Typography';
+import OtherUserProfile from './OtherUserProfile';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-css';
+import Prismjs from './prismjs';
 
 const ChatSectionContainer = styled.div`
   height: 86%;
@@ -55,6 +62,23 @@ const ChatSection = ({chatData,widthVal}) => {
     // const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
     // console.log(currentUserChatInfo,'sdsd',currentUser,currentUserDocumentId) 
     console.log(currentChatUserInfo,'currentChatUserInfo')
+
+    const [anchorEl, setAnchorEl] = useState(null);
+
+    const handleClickPop = (event) => {
+      if (event && event.currentTarget) {
+        setAnchorEl(event.currentTarget);
+      } else {
+        console.error("Event or currentTarget is undefined:", event);
+      }
+    };
+    
+   const handleClosePopOver = () => {
+     setAnchorEl(null);
+   };
+ 
+   const openPop = Boolean(anchorEl);
+   const id = openPop ? 'simple-popover' : undefined;
 
     const handleOpen = (imageUrl) => {
       if(imageUrl){
@@ -132,11 +156,23 @@ const ChatSection = ({chatData,widthVal}) => {
                       <h2>{currentChatUserInfo.name}</h2>
                  </Box>
                </Modal>
+        <PopOverElement
+        id={id}
+        open={openPop}
+        anchorEl={anchorEl}
+        onClose={handleClosePopOver}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+      >
+        <OtherUserProfile handleOpen={handleOpen}/>
+      </PopOverElement>       
        <OtherUserInfoHeader style={{width:widthVal,left: `${100 - parseInt(widthVal.split("%")[0])}%`}}>
        {
          currentChatUserInfo.imageUrl ? (<ImageBlock3  onClick={()=>{handleOpen(currentChatUserInfo.imageUrl)}}><img src={currentChatUserInfo.imageUrl} height='30px'/></ImageBlock3>) : ( <ImageBlock3><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock3>)
         }
-         <h2>{currentChatUserInfo.name}</h2>
+         <H2El onClick={(e)=>{handleClickPop(e)}}>{currentChatUserInfo.name}</H2El>
         <Chip sx={{background:`${currentChatUserInfo.onlineStatus==='online' ? "#aae2aa" : ""}`}} label={currentChatUserInfo.onlineStatus ? currentChatUserInfo.onlineStatus : "offline"}/>
         </OtherUserInfoHeader>        
      {
@@ -145,11 +181,38 @@ const ChatSection = ({chatData,widthVal}) => {
        chatData.messages.map((message)=>{
         return(
             <>
+            { !message?.isCode &&
+               (
+                
+                  currentUser.uid === message.senderId ? (<><ChatP key={message.messageId}>
+                    {message?.messagetype==='image' ? (
+                       <ImageBlock4  onClick={()=>{handleOpen(message.imageUrl)}}><img src={message.imageUrl} width='120px'/></ImageBlock4>
+                    ) : (message.text)}
+                    <MessageStatus style={{backgroundColor:`${message.messageStatus !== 'sent' ? "#69b8d2" : ""}`}}>
+                    {
+                      message.messageStatus === 'sent' ?     <Tooltip title="Unseen"><DoneIcon sx={{width:'16px'}}/></Tooltip> : <Tooltip title="Seen"><DoneAllIcon sx={{width:'16px'}}/></Tooltip>
+                    }
+                  </MessageStatus>
+                  {
+                    currentUserImageUrl ? (<ImageBlock><img src={currentUserImageUrl} height='30px'/></ImageBlock>) : ( <ImageBlock style={{right:"-30px"}}><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock>)
+                    }
+                    </ChatP>
+                     </>)  : 
+                     <ChatPother key={message.messageId}>
+                      {message?.messagetype==='image' ? (
+                        <ImageBlock4  onClick={()=>{handleOpen(message.imageUrl)}}><img src={message.imageUrl} width='120px'/></ImageBlock4>
+                      ) : (message.text)}
+                      {
+                    currentChatUserInfo.imageUrl ? (<ImageBlock2 onClick={()=>{handleOpen(currentChatUserInfo.imageUrl)}}><img src={currentChatUserInfo.imageUrl} height='30px'/></ImageBlock2>) : ( <ImageBlock2 style={{right:"-30px"}}><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock2>)
+                    }
+                      </ChatPother>
+                
+               )
+            }
             {
-                currentUser.uid === message.senderId ? (<><ChatP key={message.messageId}>
-                  {message?.messagetype==='image' ? (
-                     <ImageBlock4  onClick={()=>{handleOpen(message.imageUrl)}}><img src={message.imageUrl} width='120px'/></ImageBlock4>
-                  ) : (message.text)}
+              message?.isCode && (
+                currentUser.uid === message.senderId ? (<><ChatPCode key={message.messageId}>
+                  <Prismjs message={message.text}/>
                   <MessageStatus style={{backgroundColor:`${message.messageStatus !== 'sent' ? "#69b8d2" : ""}`}}>
                   {
                     message.messageStatus === 'sent' ?     <Tooltip title="Unseen"><DoneIcon sx={{width:'16px'}}/></Tooltip> : <Tooltip title="Seen"><DoneAllIcon sx={{width:'16px'}}/></Tooltip>
@@ -158,16 +221,15 @@ const ChatSection = ({chatData,widthVal}) => {
                 {
                   currentUserImageUrl ? (<ImageBlock><img src={currentUserImageUrl} height='30px'/></ImageBlock>) : ( <ImageBlock style={{right:"-30px"}}><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock>)
                   }
-                  </ChatP>
+                  </ChatPCode>
                    </>)  : 
-                   <ChatPother key={message.messageId}>
-                    {message?.messagetype==='image' ? (
-                      <ImageBlock4  onClick={()=>{handleOpen(message.imageUrl)}}><img src={message.imageUrl} width='120px'/></ImageBlock4>
-                    ) : (message.text)}
+                   <ChatPotherCode key={message.messageId}>
+                    <Prismjs message={message.text}/>
                     {
                   currentChatUserInfo.imageUrl ? (<ImageBlock2 onClick={()=>{handleOpen(currentChatUserInfo.imageUrl)}}><img src={currentChatUserInfo.imageUrl} height='30px'/></ImageBlock2>) : ( <ImageBlock2 style={{right:"-30px"}}><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock2>)
                   }
-                    </ChatPother>
+                    </ChatPotherCode>
+              )
             }
             </>
         )
@@ -211,6 +273,26 @@ const ChatP = styled.div`
     overflow-wrap: break-word;
     position: relative;
     padding-bottom: 20px;
+    @media screen and (max-width: 700px) {
+      margin-left: 70%;
+    }
+`;
+const ChatPCode = styled.div`
+    margin-left: 45%;
+    width: 50%;
+    text-align: right;
+    border-radius: 4px;
+    background-color: #d3cece;
+    height: max-content !important;
+    padding: 6px;
+    white-space: normal;
+    overflow-wrap: break-word;
+    position: relative;
+    padding-bottom: 20px;
+    @media screen and (max-width: 700px) {
+      width: 90%;
+      margin-left: 0%;
+    }
 `;
 
 
@@ -225,6 +307,21 @@ const ChatPother = styled.div`
     background-color: #dbb5b5;
     padding: 6px;
     position: relative;
+`
+const ChatPotherCode = styled.div`
+    width: 50%;
+    margin-left: 5%;
+    height: max-content !important;
+    /* overflow: hidden; */
+    word-break: break-all;
+    text-align: left;
+    border-radius: 4px;
+    background-color: #dbb5b5;
+    padding: 6px;
+    position: relative;
+    @media screen and (max-width: 700px) {
+      width: 90%;
+    }
 `
 
 const MessageStatus = styled.div`
@@ -295,4 +392,14 @@ const OtherUserInfoHeader = styled.div`
   flex-direction: row;
   align-items: center;
   gap: 10px;
+`
+
+const PopOverElement = styled(Popover)`
+  .css-17ffvgn-MuiTypography-root{
+    height: 450px;
+    width: 400px;
+  }
+`
+const H2El = styled.h2`
+  cursor: pointer;
 `
