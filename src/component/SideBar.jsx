@@ -204,7 +204,7 @@ export default function SideBar({ widthVal }) {
                            user[currentUserDocumentId] && <LastMez>{user[currentUserDocumentId].lastMez}</LastMez>
                         }
                        </div>
-                       {user[currentUserDocumentId].time && <LastMezTime>{getLastMessageTime(user[currentUserDocumentId].time)}</LastMezTime>}
+                       {user[currentUserDocumentId]?.time && <LastMezTime>{getLastMessageTime(user[currentUserDocumentId].time)}</LastMezTime>}
                     </UserItem>
                 ))}
             </UserListContainer>
