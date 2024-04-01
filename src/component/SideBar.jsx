@@ -68,7 +68,7 @@ export default function SideBar({ widthVal }) {
                 }
                 const currentUserDocRef = doc(firestore, 'users', currentUserDocumentId);
                 const currentUserDocSnapshot = await getDoc(currentUserDocRef);
-                console.log(currentUserDocSnapshot.data()[otherUserDocID],'data...');
+                // console.log(currentUserDocSnapshot.data()[otherUserDocID],'data...');
                 const currentUserData = currentUserDocSnapshot.data();
                 if(currentUserData[otherUserDocID]){
                     currentUserData[otherUserDocID].unreadMezCount = 0;
@@ -98,6 +98,28 @@ export default function SideBar({ widthVal }) {
             searchAndCreateDocument(user.userId, currentUser.uid, { messages: [] },user.id);
         },400)
     }
+
+    function getLastMessageTime(timeStamp) {
+        const messageTime = new Date(timeStamp);
+        const currentTime = new Date();
+        
+        const diffTime = currentTime - messageTime;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) {
+            // Today
+            return `${messageTime.getHours()}:${messageTime.getMinutes()}`;
+        } else if (diffDays === 1) {
+            // Yesterday
+            return 'Yesterday';
+        } else {
+            // Older than yesterday
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[messageTime.getMonth()];
+            const date = messageTime.getDate();
+            return `${date} ${month}`;
+        }
+    }
       
     useEffect(() => {
         const fetchUsers = async () => {
@@ -125,13 +147,22 @@ export default function SideBar({ widthVal }) {
                        return( user.userId !== currentUserUid );
                     });
                     // console.log(filteredUsers)
-                    setUsers(filteredUsers);
+                    // setUsers(filteredUsers);
                     const chatUser = filteredUsers.filter((user)=>{
                         if(currentChatUserInfo.userId === user.userId ){
                           return user;
                         }
                     })
-                    console.log(chatUser,'chatuser.....')
+                    // console.log(chatUser,'chatuser.....')
+                    console.log(filteredUsers,'filteredUsers')
+                    filteredUsers.sort((a, b) => {
+                        const timeA = a[currentUserDocumentId]?.time || 0;
+                        const timeB = b[currentUserDocumentId]?.time || 0;
+                        return timeB - timeA; // Sort in descending order of time
+                    });
+                    
+                    console.log(filteredUsers);
+                    setUsers(filteredUsers);
                     if(chatUser.length>0){
                         dispatch(setCurretnChatUSerInfo({val:chatUser[0]}))
                     }
@@ -144,7 +175,7 @@ export default function SideBar({ widthVal }) {
         };
 
         fetchUsers();
-    }, [firestore, currentUser]);
+    }, [firestore, currentUser,currentUserDocumentId]);
 
     return (
         <SideBarContainer style={{ width: widthVal }}>
@@ -168,11 +199,12 @@ export default function SideBar({ widthVal }) {
                         }
                         </UserDiv>
                        <div style={{display:'flex',flexDirection:'column'}}>
-                       <Typography variant="h5" component="h2" sx={{color:"black"}} style={{padding:'0px',margin:'0px'}}>{user.name}</Typography>
+                       <Typography variant="h5" component="h2" sx={{color:`${selectedUser === user.userId ? "white" : "black"}`}} style={{padding:'0px',margin:'0px'}}>{user.name}</Typography>
                         {
                            user[currentUserDocumentId] && <LastMez>{user[currentUserDocumentId].lastMez}</LastMez>
                         }
                        </div>
+                       {user[currentUserDocumentId].time && <LastMezTime>{getLastMessageTime(user[currentUserDocumentId].time)}</LastMezTime>}
                     </UserItem>
                 ))}
             </UserListContainer>
@@ -253,11 +285,14 @@ const UserItem = styled.div`
     padding-bottom: 0px;
     background-color: ${props => props.selected ? '#007bff' : '#f8f5f5'};
     color: ${props => props.selected ? '#fff' : '#000'};
+    transition: all 0.2s ease; /* Smooth transition effect */
     &:hover {
         background-color: ${props => props.selected ? '#007bff' : '#f2f2f2'};
         color: ${props => props.selected ? '#fff' : '#000'};
     }
+    position: relative;
 `;
+
 
 const UserName = styled.h1`
     text-align: center;
@@ -309,4 +344,10 @@ const UserHeader = styled.div`
   position: absolute;
   top: 0px;
   left: 0px;
+`
+
+const LastMezTime = styled.p`
+    position: absolute;
+    right: 4px;
+    bottom: -14px;
 `

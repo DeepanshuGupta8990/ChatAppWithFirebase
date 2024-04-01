@@ -137,10 +137,13 @@ useEffect(()=>{
         return () => unsubscribe();
       }, [auth]);
 
-      async function handleWindowClose(){
-        const userDocRef = doc(firestore, 'users', currentUser.uid);
-        await updateDoc(userDocRef, { onlineStatus: 'offline' });
-      }
+      // async function handleWindowClose(e){
+      //   e.preventDefault();
+      //   e.returnValue = '';
+      //   alert(232323)
+      //   // const userDocRef = doc(firestore, 'users', currentUser.uid);
+      //   // await updateDoc(userDocRef, { onlineStatus: 'offline' });
+      // }
 
       function func(){
          timerRef.current = setInterval(() => {
@@ -164,13 +167,13 @@ useEffect(()=>{
         };
       },[isLoadingtrue])
 
-      useEffect(()=>{
-        console.log(isLoadingtrue,'isLoadingtrue',loadingPercatnge,progress,'progress')
-      },[progress])
+      // useEffect(()=>{
+        // console.log(isLoadingtrue,'isLoadingtrue',loadingPercatnge,progress,'progress')
+      // },[progress])
 
-      useEffect(()=>{
-        console.log(sideBarWidth);
-      },[sideBarWidth])
+      // useEffect(()=>{
+        // console.log(sideBarWidth);
+      // },[sideBarWidth])
 
       useEffect(()=>{
         document.addEventListener('mousemove', handleMouseMove);
@@ -192,7 +195,8 @@ useEffect(()=>{
               console.log(userDocData,'userDoc')
               if(userDocData){
                 await updateDoc(userDocRef, { onlineStatus: 'online' });
-                window.addEventListener('beforeunload', handleWindowClose);
+                // alert("hello")
+                // window.addEventListener('beforeunload', handleWindowClose);
               }
             }
           }
@@ -201,11 +205,34 @@ useEffect(()=>{
 
           return async()=>{
            if(currentUser && currentUser.uid){
-            handleWindowClose();
-            window.removeEventListener('beforeunload', handleWindowClose);
+            // handleWindowClose();
+            // window.removeEventListener('beforeunload', handleWindowClose);
            }
           }
       },[currentUser])
+
+      async function handleWindowClose(e) {
+        e.preventDefault();
+        e.returnValue = '';
+      
+        if (currentUser && currentUser.uid) {
+          const userDocRef = doc(firestore, 'users', currentUser.uid);
+          await updateDoc(userDocRef, { onlineStatus: 'offline' });
+        }
+      }
+      
+      useEffect(() => {
+        const handleBeforeUnload = (e) => {
+          handleWindowClose(e);
+        };
+      
+        window.addEventListener('beforeunload', handleBeforeUnload);
+      
+        return () => {
+          window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+      }, [currentUser, firestore]);
+      
       
     
       // Show loading spinner or any other loading indicator while checking auth state
@@ -267,9 +294,12 @@ const LoadingBox = styled.div`
 const Separator = styled.div`
  width: 4px;
  height: 100%;
- background-color: #f3f3f3;
+ background-color: #ebe5e5;
  cursor: col-resize;
  position: absolute;
  top: 0px;
  z-index: 104;
+ &:hover{
+   background-color: #e3d6d6;
+ }
 `

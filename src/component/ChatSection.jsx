@@ -61,7 +61,7 @@ const ChatSection = ({chatData,widthVal}) => {
     const currentChatUserInfo = useSelector(state => state.userRdx.currentChatUserInfo);
     // const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
     // console.log(currentUserChatInfo,'sdsd',currentUser,currentUserDocumentId) 
-    console.log(currentChatUserInfo,'currentChatUserInfo')
+    // console.log(currentChatUserInfo,'currentChatUserInfo')
 
     const [anchorEl, setAnchorEl] = useState(null);
 
