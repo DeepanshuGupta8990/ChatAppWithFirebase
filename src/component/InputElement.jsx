@@ -9,6 +9,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
 import ImageSlider from './ImageSlider';
+import Sketch from './Sketch';
 
 const InputContainer = styled.div`
   display: flex;
@@ -94,7 +95,8 @@ export default function InputElement() {
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState(''); // State to hold the URL of the selected image
   const [imageArray,setImageArray] = useState([]);
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [open2, setOpen2] = useState(false);
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const currentUser = useSelector(state => state.userRdx.user); 
@@ -105,6 +107,8 @@ export default function InputElement() {
   
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+  const handleOpen2 = () => setOpen2(true);
+  const handleClose2 = () => setOpen2(false);
 
   const style = {
     position: 'absolute',
@@ -248,12 +252,13 @@ export default function InputElement() {
       const unreadMessageCountForOtherUser = otherUserData[currentUserDocumentId]?.unreadMezCount || 0;
       // console.log(unreadMessageCountForOtherUser,'unreadMessageCountForOtherUser')
       // Update the chat document with the updated messages array
+      const currentTime = Date.now();
       await updateDoc(chatDocRef, { messages: updatedMessages });
       updateLastMessage(currentUserDocumentId,{
-        [currentUserChatInfo.id] : {lastMez : ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue)), by : 'me', }
+        [currentUserChatInfo.id] : {lastMez : ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue)), by : 'me',  time: currentTime}
       })
       updateLastMessage(currentUserChatInfo.id,{
-        [currentUserDocumentId] : {lastMez :  ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue)), by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1)}
+        [currentUserDocumentId] : {lastMez :  ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue)), by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1), time: currentTime}
       })
     }
   } catch (error) {
@@ -323,6 +328,16 @@ export default function InputElement() {
           <ImageSlider imageArray={imageArray}/>
         </Box>
       </Modal>
+    <Modal
+        open={open2}
+        onClose={handleClose2}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <Sketch/>
+        </Box>
+      </Modal>
       <InputField 
         type="text" 
         value={inputValue} 
@@ -361,6 +376,7 @@ export default function InputElement() {
       }
       </ImageBlocks>}
       </UploadImageCont>
+      <SendButton onClick={handleOpen2}>Sketch</SendButton>
       <SendButton onClick={()=>{sendMessage("text")}}>Send</SendButton>
     </InputContainer>
   );
