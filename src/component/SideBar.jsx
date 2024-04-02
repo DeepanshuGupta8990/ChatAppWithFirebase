@@ -187,11 +187,12 @@ export default function SideBar({ widthVal }) {
              <UserListDiv>
                 <UserHeader/>
              <UserListContainer>
-                {users.map(user => (
+                {users.map((user,index) => (
                     <UserItem 
                         key={user.id} 
                         onClick={() => startChat(user)} 
                         selected={selectedUser === user.userId}
+                        style={{transform: `translateY(${index * 80}px)`}}
                     >
                         <UserDiv>
                         {
@@ -260,6 +261,7 @@ const UserListContainer = styled.div`
     height: 100%;
     width: 100%;
     padding-top: 50px;
+    position: relative;
 `;
 const UserListDiv = styled.div`
     padding: 8px;
@@ -290,7 +292,8 @@ const UserItem = styled.div`
         background-color: ${props => props.selected ? '#007bff' : '#f2f2f2'};
         color: ${props => props.selected ? '#fff' : '#000'};
     }
-    position: relative;
+    position: absolute;
+    width: 90%;
 `;
 
 
