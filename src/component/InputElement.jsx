@@ -15,6 +15,10 @@ const InputContainer = styled.div`
   display: flex;
   margin-bottom: 10px;
   padding-inline: 10px;
+  position: absolute;
+  width: 100%;
+  max-height: 280px;
+  bottom: -25px;
 `;
 
 const InputField = styled.textarea`
@@ -23,6 +27,23 @@ const InputField = styled.textarea`
   border: 1px solid #ccc;
   border-radius: 4px;
   margin-right: 10px;
+  resize: none; /* Disable textarea resizing */
+  min-height: 25px; /* Minimum height */
+  max-height: 280px; /* Maximum height */
+  overflow-y: auto; /* Add scrollbar when content exceeds max height */
+  font-family: Arial, sans-serif; /* Change the font family */
+  font-size: 16px; /* Change the font size */
+  color: #333; /* Change the text color */
+  outline: none; /* Remove the default outline */
+  transition: border-color 0.3s ease; /* Add transition for border color change */
+
+  &:focus {
+    border-color: #007bff; /* Change border color on focus */
+  }
+
+  &::placeholder {
+    color: #999; /* Change placeholder color */
+  }
 `;
 
 const SendButton = styled.button`
@@ -31,6 +52,7 @@ const SendButton = styled.button`
   color: #fff;
   border: none;
   border-radius: 4px;
+  height: 40px;
   cursor: pointer;
   transition: background-color 0.3s;
   
@@ -51,6 +73,7 @@ const UploadButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.3s;
+  height: 40px;
   
   &:hover {
     background-color: #218838;
@@ -192,7 +215,6 @@ export default function InputElement() {
  const firestore = getFirestore();
 
  const sendMessage = async (messagetype,imageUrl) => {
-  console.log(imageUrl,'imageurlsdasdasdsadsa.ds.ad.sa.das.d.asd.as.')
   if (inputValue.trim() === '' && messagetype === 'text') return; // Don't send empty messages
 
   // Generate unique message ID using uuid()
@@ -270,11 +292,20 @@ export default function InputElement() {
 };
 
 
-  const handleKeyPress = (event) => {
-    if (event.key === 'Enter') {
+const handleKeyPress = (event) => {
+  // Check if Enter key is pressed
+  if (event.key === 'Enter') {
+    // Check if Shift key is pressed along with Enter
+    if (event.shiftKey) {
+      // Insert a newline character into the input value
+      setInputValue(inputValue + '\n');
+    } else {
+      // If only Enter is pressed without Shift, send the message
       sendMessage("text");
     }
-  };
+  }
+};
+
 
   const updateLastMessage = async ( documentId, newData) => {
     try {
@@ -345,7 +376,8 @@ export default function InputElement() {
         onKeyPress={handleKeyPress}
         placeholder="Enter something..." 
         ref={inputRef}
-        rows="1" // Adjust the number of rows as needed
+        // rows={Math.min(30, Math.ceil((inputValue.length + 1) / 30))} // Adjust rows based on content length
+        rows={Math.min(15, inputValue.split('\n').length)} 
       />
       <FileInput ref={fileInputRef} type="file" onChange={handleChange1} multiple />
       <UploadButton onClick={() => document.querySelector('input[type="file"]').click()}>
