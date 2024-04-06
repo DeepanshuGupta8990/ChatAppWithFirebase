@@ -139,7 +139,8 @@ export default function SideBar({ widthVal }) {
         const topPosition = (fullHeight - halfHeight) / 2;
     console.log(callId,'calliddsmmdnasdnaskldaskdnj')
         // Open a new window with half the size and centered position
-        window.open(`http://localhost:3000/videoCall?myId=${id}&callId=${callId}`, 'New Window', `width=${halfWidth},height=${halfHeight},left=${leftPosition},top=${topPosition}`);
+        // window.open(`https://66114cc746501de76539b843--glistening-salamander-daf1be.netlify.app/index.html?room=${id}&password=123`, 'New Window', `width=${halfWidth},height=${halfHeight},left=${leftPosition},top=${topPosition}`);
+        window.open(`https://66114cc746501de76539b843--glistening-salamander-daf1be.netlify.app/index.html?room=123&password=123`, 'New Window', `width=${halfWidth},height=${halfHeight},left=${leftPosition},top=${topPosition}`);
     };
     
 
