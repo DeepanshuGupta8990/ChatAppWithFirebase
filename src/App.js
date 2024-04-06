@@ -7,16 +7,19 @@ import SignUp from './pages/SignUp';
 import {app} from './firebase';
 import VideoCall from './pages/VideoCall';
 import 'prismjs/themes/prism.css';
+import { ThemeProvider } from './ThemeContext';
 
 function App() {
   return (
     <>
+    <ThemeProvider>
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/videoCall" element={<VideoCall />} />
     </Routes>
+    </ThemeProvider>
     </>
   );
 }

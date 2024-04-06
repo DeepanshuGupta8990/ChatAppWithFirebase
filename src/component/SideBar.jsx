@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
@@ -14,13 +14,16 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import SideBarOptions from './SideBarOptions';
+import { ThemeContext } from '../ThemeContext';
 
 export default function SideBar({ widthVal }) {
+    const { theme, toggleTheme } = useContext(ThemeContext);
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [open, setOpen] = useState(false);
     const firestore = getFirestore();
     const dispatch = useDispatch(); 
+    const entry = useRef(false);
     const currentUser = useSelector(state => state.userRdx.user); 
     const currentUserImageUrl = useSelector(state => state.userRdx.userImageUrl); 
     const userName = useSelector(state => state.userRdx.name); 
@@ -28,6 +31,7 @@ export default function SideBar({ widthVal }) {
     const isLoadingtrue = useSelector(state => state.userRdx.isLoadingtrue); 
     const currentChatUserInfo = useSelector(state => state.userRdx.currentChatUserInfo);
     // console.log(currentUserImageUrl,'currentUser')
+    // console.log(theme,'theme valaue.......')
     const style = {
         position: 'absolute',
         top: '50%',
@@ -120,7 +124,68 @@ export default function SideBar({ widthVal }) {
             return `${date} ${month}`;
         }
     }
-      
+
+    const openHalfSizeWindow = (id,callId) => {
+        // Get the current window's width and height
+        const fullWidth = window.innerWidth;
+        const fullHeight = window.innerHeight;
+    
+        // Calculate half of the width and height
+        const halfWidth = fullWidth / 2;
+        const halfHeight = fullHeight / 2;
+    
+        // Calculate the centered position
+        const leftPosition = (fullWidth - halfWidth) / 2;
+        const topPosition = (fullHeight - halfHeight) / 2;
+    console.log(callId,'calliddsmmdnasdnaskldaskdnj')
+        // Open a new window with half the size and centered position
+        window.open(`http://localhost:3000/videoCall?myId=${id}&callId=${callId}`, 'New Window', `width=${halfWidth},height=${halfHeight},left=${leftPosition},top=${topPosition}`);
+    };
+    
+
+    useEffect(()=>{
+       async function func(){
+        const currentUserCallRef = doc(firestore, 'calls', currentUserDocumentId);
+        let currentUserCallRefSnapShot = await getDoc(currentUserCallRef);
+        if (!currentUserCallRefSnapShot.exists()) {
+            console.log('Document does not exist for current user');
+            const userDocRef = doc(collection(firestore, 'calls'), currentUserDocumentId);
+            await setDoc(userDocRef, {
+              calls: []
+            });
+          }
+       }
+       if(currentUserDocumentId !== ""){
+           func();
+        }
+    },[currentUserDocumentId])
+
+    useEffect(() => {
+        async function func() {
+            const userDocRef = doc(firestore, 'calls', currentUserDocumentId); // Create document reference
+            const unsubscribe = onSnapshot(userDocRef, snapshot => { // Subscribe to document changes
+                if (snapshot.exists()) {
+                    const userData = snapshot.data().calls;
+                    // Do something with the data
+                    console.log(userData);
+                    if(entry.current && userData[userData.length-1].senderId !== currentUserDocumentId){
+                        const callIdForVideoCall = Math.floor(Math.random()*1000000)+'WQeE32';
+                        console.log(userData[userData.length-1].callIdForVideoCall,'userData[userData.length-1].callIdForVideoCall')
+                        openHalfSizeWindow(callIdForVideoCall,userData[userData.length-1].callIdForVideoCall)
+                    }
+                    entry.current = true;
+                } else {
+                    console.log("Document does not exist");
+                }
+            });
+            return unsubscribe;
+        }
+    
+        if (currentUserDocumentId !== "") {
+            func();
+        }
+    }, [currentUserDocumentId]);
+
     useEffect(() => {
         const fetchUsers = async () => {
             try {
@@ -154,14 +219,14 @@ export default function SideBar({ widthVal }) {
                         }
                     })
                     // console.log(chatUser,'chatuser.....')
-                    console.log(filteredUsers,'filteredUsers')
+                    // console.log(filteredUsers,'filteredUsers')
                     filteredUsers.sort((a, b) => {
                         const timeA = a[currentUserDocumentId]?.time || 0;
                         const timeB = b[currentUserDocumentId]?.time || 0;
                         return timeB - timeA; // Sort in descending order of time
                     });
                     
-                    console.log(filteredUsers);
+                    // console.log(filteredUsers);
                     setUsers(filteredUsers);
                     if(chatUser.length>0){
                         dispatch(setCurretnChatUSerInfo({val:chatUser[0]}))
@@ -178,7 +243,7 @@ export default function SideBar({ widthVal }) {
     }, [firestore, currentUser,currentUserDocumentId]);
 
     return (
-        <SideBarContainer style={{ width: widthVal }}>
+        <SideBarContainer style={{ width: widthVal }} onClick={()=>{toggleTheme(34234)}}>
             <SideBarOptions/>
             {/* <HeadingSidebar> */}
                 {/* <h2>User List</h2> */}
@@ -202,7 +267,7 @@ export default function SideBar({ widthVal }) {
                        <div style={{display:'flex',flexDirection:'column'}}>
                        <Typography variant="h5" component="h2" sx={{color:`${selectedUser === user.userId ? "white" : "black"}`}} style={{padding:'0px',margin:'0px'}}>{user.name}</Typography>
                         {
-                           user[currentUserDocumentId] && <LastMez>{user[currentUserDocumentId].lastMez}</LastMez>
+                           user[currentUserDocumentId] && <LastMez widthVal={widthVal}>{user[currentUserDocumentId].lastMez}</LastMez>
                         }
                        </div>
                        {user[currentUserDocumentId]?.time && <LastMezTime>{getLastMessageTime(user[currentUserDocumentId].time)}</LastMezTime>}
@@ -311,7 +376,11 @@ const LastMez = styled.div`
     text-overflow: ellipsis;
     max-height: 25px;
     white-space: nowrap;
-`
+    width: ${props =>  parseInt(props?.widthVal.split('%')[0]) - 15 }%;
+    min-width: 30px;
+`;
+
+
 
 const UserDiv = styled.div`
     display: flex;

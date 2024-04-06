@@ -58,7 +58,7 @@ export default function Chats({ widthVal }) {
     }, [chatID]);
 
     return (
-        <div style={{ width: widthVal,height:"100%" }}>
+        <div style={{ width: widthVal,height:"95%" ,position:'relative'}}>
          {/* <Link to="/videoCall">VideoCall</Link> */}
             {
                 chatID === '1' 

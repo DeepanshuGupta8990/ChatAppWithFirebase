@@ -1,14 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState,memo  } from 'react';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
-import { getFirestore, doc, updateDoc,getDoc } from 'firebase/firestore';
+import { getFirestore, doc, updateDoc,getDoc, setDoc, collection } from 'firebase/firestore';
 import DoneIcon from '@mui/icons-material/Done';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import Tooltip from '@mui/material/Tooltip';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import Modal from '@mui/material/Modal';
+import { v4 as uuidv4 } from 'uuid'; 
 import { Box } from '@mui/material';
+import Button from '@mui/material/Button';
 import MyImageZoomComponent from './MyImageZoomComponent ';
 import Chip from '@mui/material/Chip';
 import ZoomPinch from './ZoomPinch';
@@ -19,6 +21,10 @@ import Prism from 'prismjs';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-css';
 import Prismjs from './prismjs';
+import VideoCallIcon from '@mui/icons-material/VideoCall';
+import CallIcon from '@mui/icons-material/Call';
+import IconButton from '@mui/material/IconButton';
+
 
 const ChatSectionContainer = styled.div`
   height: 86%;
@@ -50,7 +56,7 @@ const style = {
 };
 
 
-const ChatSection = ({chatData,widthVal}) => {
+const ChatSection = memo (({chatData,widthVal}) => {
   const [open, setOpen] = useState(false);
     const chatConatinerRef = useRef(null);
     const currentUser = useSelector(state => state.userRdx.user); 
@@ -59,10 +65,11 @@ const ChatSection = ({chatData,widthVal}) => {
     const [modalImageUrl,setModalImageUrl] = useState('');
     const currentUserImageUrl = useSelector(state => state.userRdx.userImageUrl); 
     const currentChatUserInfo = useSelector(state => state.userRdx.currentChatUserInfo);
-    // const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
+    const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
+    let chatId = useSelector(state => state.chatRdx.chatId); 
     // console.log(currentUserChatInfo,'sdsd',currentUser,currentUserDocumentId) 
-    // console.log(currentChatUserInfo,'currentChatUserInfo')
-
+    // console.log(currentChatUserInfo,'currentChatUserInfo',currentUserDocumentId)
+console.log(chatData,'chatData')
     const [anchorEl, setAnchorEl] = useState(null);
 
     const handleClickPop = (event) => {
@@ -91,10 +98,137 @@ const ChatSection = ({chatData,widthVal}) => {
       setModalImageUrl("")
     }
 
+    const openHalfSizeWindow = (id) => {
+      // Get the current window's width and height
+      const fullWidth = window.innerWidth;
+      const fullHeight = window.innerHeight;
+  
+      // Calculate half of the width and height
+      const halfWidth = fullWidth / 2;
+      const halfHeight = fullHeight / 2;
+  
+      // Calculate the centered position
+      const leftPosition = (fullWidth - halfWidth) / 2;
+      const topPosition = (fullHeight - halfHeight) / 2;
+  
+      // Open a new window with half the size and centered position
+      window.open(`http://localhost:3000/videoCall?myId=${id}`, 'New Window', `width=${halfWidth},height=${halfHeight},left=${leftPosition},top=${topPosition}`);
+  };
+  
+
     function scrollToBottom(){
       const chatContainer = chatConatinerRef.current;
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
+
+    const firestore = getFirestore();
+
+    const updateLastMessage = async ( documentId, newData) => {
+      try {
+        // Construct the document reference using the document ID
+        const docRef = doc(firestore, 'users', documentId);
+        
+        // Update the document with the new data
+        await updateDoc(docRef, newData);
+    
+        // console.log(`Document with ID ${documentId} updated successfully.`);
+      } catch (error) {
+        console.error('Error updating document:', error);
+      }
+    };
+
+ const sendMessage = async (messagetype) => {
+  // Generate unique message ID using uuid()
+  const callIdForVideoCall = Math.floor(Math.random()*1000000)+'WQeE32';
+  openHalfSizeWindow(callIdForVideoCall);
+  const messageId = uuidv4();
+
+  // Add the message to the Firestore chat document
+  const chatDocRef = doc(firestore, 'chats', chatId);
+  const otherUserCallRef = doc(firestore, 'calls', currentUserChatInfo.id);
+  const currentUserCallRef = doc(firestore, 'calls', currentUserDocumentId);
+
+  try {
+    // Get the current messages array from the document
+    const chatDocSnapshot = await getDoc(chatDocRef);
+    let otherUserCallRefSnapShot = await getDoc(otherUserCallRef);
+    let currentUserCallRefSnapShot = await getDoc(currentUserCallRef);
+    if (!otherUserCallRefSnapShot.exists()) {
+      console.log('Document does not exist for other user');
+      const userDocRef = doc(collection(firestore, 'calls'), currentUserChatInfo.id);
+      await setDoc(userDocRef, {
+        calls: []
+      });
+    }
+    
+    if (!currentUserCallRefSnapShot.exists()) {
+      console.log('Document does not exist for current user');
+      const userDocRef = doc(collection(firestore, 'calls'), currentUserDocumentId);
+      await setDoc(userDocRef, {
+        calls: []
+      });
+    }
+    
+    let currentMessages = chatDocSnapshot.data().messages || []; // Initialize as empty array if undefined
+    let otherUserCallsArray = otherUserCallRefSnapShot.data().calls || [];
+    let curretnUserCallsArray = currentUserCallRefSnapShot.data().calls || [];
+
+    // Ensure currentMessages is an array
+    if (!Array.isArray(currentMessages)) {
+      currentMessages = [];
+    }
+    if (!Array.isArray(otherUserCallsArray)) {
+      otherUserCallsArray = [];
+    }
+    if (!Array.isArray(curretnUserCallsArray)) {
+      curretnUserCallsArray = [];
+    }
+
+    // Construct the new message object
+    const newMessage = {
+      text: "call",
+      timestamp: new Date().toISOString(),
+      messageId: messageId,
+      senderId: currentUser.uid,
+      messageStatus: "sent",
+      messagetype: messagetype,
+      callIdForVideoCall: callIdForVideoCall
+    };
+    
+    // Update the messages array by appending the new message
+    const updatedMessages = [...currentMessages, newMessage];
+    const updatedCallsForOtherUser = [...otherUserCallsArray,newMessage];
+    const updatedCallsForCurrentUser = [...curretnUserCallsArray,newMessage];
+
+    const currentUserDocRef = doc(firestore, 'users', currentUserDocumentId);
+    const otherUserDocRef = doc(firestore, 'users', currentUserChatInfo.id);
+
+    const [currentUserDoc, otherUserDoc] = await Promise.all([
+      getDoc(currentUserDocRef),
+      getDoc(otherUserDocRef)
+    ]);
+
+    if (currentUserDoc.exists() && otherUserDoc.exists()) {
+      // Both documents exist, you can now update them
+      const otherUserData = otherUserDoc.data();
+
+      const unreadMessageCountForOtherUser = otherUserData[currentUserDocumentId]?.unreadMezCount || 0;
+      // Update the chat document with the updated messages array
+      const currentTime = Date.now();
+      await updateDoc(chatDocRef, { messages: updatedMessages });
+      await updateDoc(otherUserCallRef, { calls: updatedCallsForOtherUser });
+      await updateDoc(currentUserCallRef, { calls: updatedCallsForCurrentUser });
+      updateLastMessage(currentUserDocumentId,{
+        [currentUserChatInfo.id] : {lastMez : "Call", by : 'me',  time: currentTime}
+      })
+      updateLastMessage(currentUserChatInfo.id,{
+        [currentUserDocumentId] : {lastMez :  "Call", by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1), time: currentTime}
+      })
+    }
+  } catch (error) {
+    console.error('Error adding message to Firestore:', error);
+  }
+};
 
     useEffect(() => {
       const chatContainer = chatConatinerRef.current;
@@ -121,7 +255,7 @@ const ChatSection = ({chatData,widthVal}) => {
           const scrollTop = container.scrollTop;
   
           if (scrollHeight - clientHeight - scrollTop > 10) {
-            console.log('Scroll position is not at the bottom');
+            // console.log('Scroll position is not at the bottom');
             setShowArrow(true);
           }else{
             setShowArrow(false);
@@ -143,6 +277,7 @@ const ChatSection = ({chatData,widthVal}) => {
   
   return (
     <ChatSectionContainer ref={chatConatinerRef}>
+      
        <Modal
                  open={open}
                  onClose={handleClose}
@@ -168,12 +303,20 @@ const ChatSection = ({chatData,widthVal}) => {
       >
         <OtherUserProfile handleOpen={handleOpen}/>
       </PopOverElement>       
-       <OtherUserInfoHeader style={{width:widthVal,left: `${100 - parseInt(widthVal.split("%")[0])}%`}}>
+       <OtherUserInfoHeader style={{width: '100%',left: `${100 - parseInt(widthVal.split("%")[0])}%`}}>
        {
          currentChatUserInfo.imageUrl ? (<ImageBlock3  onClick={()=>{handleOpen(currentChatUserInfo.imageUrl)}}><img src={currentChatUserInfo.imageUrl} height='30px'/></ImageBlock3>) : ( <ImageBlock3><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock3>)
         }
          <H2El onClick={(e)=>{handleClickPop(e)}}>{currentChatUserInfo.name}</H2El>
         <Chip sx={{background:`${currentChatUserInfo.onlineStatus==='online' ? "#aae2aa" : ""}`}} label={currentChatUserInfo.onlineStatus ? currentChatUserInfo.onlineStatus : "offline"}/>
+        <MediaBox>
+        <VideoCallButton color="primary"  onClick={()=>{sendMessage('vdieoCall');}}>
+        <VideoCallIcon sx={{ fontSize: 30,color:'#6d6868' }}/>
+       </VideoCallButton>
+        <AudioCallButton color="primary" onClick={()=>{sendMessage('audioCall');}}>
+        <CallIcon sx={{ fontSize: 30, color:'#6d6868' }}/>
+       </AudioCallButton>
+        </MediaBox>
         </OtherUserInfoHeader>        
      {
         chatData &&
@@ -181,7 +324,7 @@ const ChatSection = ({chatData,widthVal}) => {
        chatData.messages.map((message)=>{
         return(
             <>
-            { !message?.isCode &&
+            { !message?.isCode && message.messagetype !=="vdieoCall" && message.messagetype !=="audioCall" &&
                (
                 
                   currentUser.uid === message.senderId ? (<><ChatP key={message.messageId}>
@@ -210,7 +353,7 @@ const ChatSection = ({chatData,widthVal}) => {
                )
             }
             {
-              message?.isCode && (
+              message?.isCode &&  message.messagetype !=="vdieoCall" && message.messagetype !=="audioCall" && (
                 currentUser.uid === message.senderId ? (<><ChatPCode key={message.messageId}>
                   <Prismjs message={message.text}/>
                   <MessageStatus style={{backgroundColor:`${message.messageStatus !== 'sent' ? "#69b8d2" : ""}`}}>
@@ -231,6 +374,10 @@ const ChatSection = ({chatData,widthVal}) => {
                     </ChatPotherCode>
               )
             }
+            {
+              ( message.messagetype ==="vdieoCall" || message.messagetype ==="audioCall" ) && 
+               <CallElement>{message.senderId === currentUserChatInfo.userId ? currentChatUserInfo.name : "You"}{" called "}{message.senderId === currentUserChatInfo.userId ? "you" : currentChatUserInfo.name}</CallElement>
+            }
             </>
         )
     })
@@ -243,7 +390,7 @@ const ChatSection = ({chatData,widthVal}) => {
    }
     </ChatSectionContainer>
   );
-};
+});
 
 export default ChatSection;
 
@@ -392,6 +539,8 @@ const OtherUserInfoHeader = styled.div`
   flex-direction: row;
   align-items: center;
   gap: 10px;
+  left: 0% !important;
+    top: -3.5%;
 `
 
 const PopOverElement = styled(Popover)`
@@ -402,4 +551,33 @@ const PopOverElement = styled(Popover)`
 `
 const H2El = styled.h2`
   cursor: pointer;
+`
+const MediaBox = styled.div`
+  border: 2px solid #eaedea;
+  height:35px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+  position: absolute;
+  right: 50px;
+  &:hover{
+    border: 2px solid #c7cdc7;
+  }
+`
+const VideoCallButton = styled(IconButton)`
+  border-radius: 4px !important;
+  height: 35px !important;
+`
+const AudioCallButton = styled(IconButton)`
+    border-radius: 4px !important;
+    height: 35px !important;
+`
+const CallElement = styled.div`
+  color: #000000;
+  background-color: grey;
+  margin-inline: auto;
+  padding: 5px 10px;
+  border-radius: 4px;
 `
