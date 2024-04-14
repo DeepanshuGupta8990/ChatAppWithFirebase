@@ -10,13 +10,17 @@ import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
 import ImageSlider from './ImageSlider';
 import Sketch from './Sketch';
+import { Menu, MenuItem } from '@mui/material';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import FileUploadComponent from './LocalDoc';
 
 const InputContainer = styled.div`
   display: flex;
   margin-bottom: 10px;
   padding-inline: 10px;
   position: absolute;
-  width: 100%;
+  width: 96%;
   max-height: 280px;
   bottom: -25px;
 `;
@@ -119,14 +123,36 @@ export default function InputElement() {
   const [imageUrl, setImageUrl] = useState(''); // State to hold the URL of the selected image
   const [imageArray,setImageArray] = useState([]);
   const [open, setOpen] = useState(false);
+  const [openPdf, setOpenPdf] = React.useState(false);
+  const [selectedFilePdf, setSelectedFilePdf] = useState(null);
   const [open2, setOpen2] = useState(false);
+  const [docsArray,setDocsArray] = useState([]);
   const fileInputRef = useRef(null);
+  const docInputRef = useRef(null);
   const inputRef = useRef(null);
   const currentUser = useSelector(state => state.userRdx.user); 
   let chatId = useSelector(state => state.chatRdx.chatId); 
   const currentUserChatInfo = useSelector(state => state.userRdx.currentChatInfo);
   const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
   const storage = getStorage();
+
+  const handleOpenPdf = (docElement) => {
+    if(docElement.type === "application/pdf" ){
+      console.log(docElement)
+      setSelectedFilePdf(docElement)
+      setOpenPdf(true);
+    }
+  }
+  const handleClosePdf = () => setOpenPdf(false);
+
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const openOptions = Boolean(anchorEl);
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleCloseOptions = () => {
+    setAnchorEl(null);
+  };
   
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -143,6 +169,7 @@ export default function InputElement() {
     border: '2px solid #000',
     boxShadow: 24,
     p: 4,
+    maxHeight:"90%"
   };
 
   function isCodeSnippet(message) {
@@ -177,6 +204,13 @@ export default function InputElement() {
     }
   };
 
+  const handleChange2 = (e)=>{
+    if (e.target.files[0]) {
+      console.log(e.target.files);
+      setDocsArray(Object.values(e.target.files));
+    }
+  }
+
   const handleUpload = () => {
     if (!imageArray || imageArray.length === 0) return; // No images selected
   
@@ -209,6 +243,39 @@ export default function InputElement() {
   
     // Clear the imageArray state after upload
     setImageArray([]);
+  };
+  const handleUploadDoc = () => {
+    if (!docsArray || docsArray.length === 0) return; // No images selected
+  
+    docsArray.forEach((doc, index) => {
+      const storageRef = ref(storage, `images/${doc.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, doc);
+  
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          // Upload progress
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log(`Doc ${index + 1} upload is ${progress}% done`);
+        },
+        (error) => {
+          // Handle unsuccessful uploads
+          console.error(`Error uploading Doc ${index + 1}:`, error);
+        },
+        () => {
+          // Handle successful uploads
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            console.log(`File ${index + 1} available at`, downloadURL);
+            sendMessage('doc',downloadURL)
+            // Do something with the download URL if needed
+              docInputRef.current.value = '';
+          });
+        }
+      );
+    });
+  
+    // Clear the imageArray state after upload
+    setDocsArray([]);
   };
   
  // Handler function to send the message
@@ -246,6 +313,9 @@ export default function InputElement() {
     if (messagetype === 'image') {
       newMessage.imageUrl = imageUrl;
     }
+    if (messagetype === 'doc') {
+      newMessage.docUrl = imageUrl;
+    }
 
     const isCode = isCodeSnippet(`${inputValue}`);
     console.log(isCode,'iscodesdsdsd')
@@ -277,10 +347,10 @@ export default function InputElement() {
       const currentTime = Date.now();
       await updateDoc(chatDocRef, { messages: updatedMessages });
       updateLastMessage(currentUserDocumentId,{
-        [currentUserChatInfo.id] : {lastMez : ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue)), by : 'me',  time: currentTime}
+        [currentUserChatInfo.id] : {lastMez : (messagetype==='doc' ? ("doc") : ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue))), by : 'me',  time: currentTime}
       })
       updateLastMessage(currentUserChatInfo.id,{
-        [currentUserDocumentId] : {lastMez :  ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue)), by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1), time: currentTime}
+        [currentUserDocumentId] : {lastMez :  (messagetype==='doc'? ("doc") : ((messagetype==='image' && inputValue==='') ? 'Image' : (isCode ? "Code" : inputValue))), by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser+1), time: currentTime}
       })
     }
   } catch (error) {
@@ -328,6 +398,11 @@ const handleKeyPress = (event) => {
     setImageUrl('');
     setImageArray([]);
   };
+  const clearDocInput = () => {
+    // Clear the selected files
+    docInputRef.current.value = '';
+    setDocsArray([]);
+  };
 
   const removeImage = (imageEle)=>{
     let filteredImageArray = imageArray.filter((imageElement)=>{
@@ -341,6 +416,20 @@ const handleKeyPress = (event) => {
     }
   }
 
+  const removeDoc = (docFile)=>{
+    console.log(docFile)
+    console.log(docsArray)
+    let filteredDocsArray = docsArray.filter((docElement)=>{
+      if(docElement.name !== docFile.name){
+       return docElement
+      }
+   })
+   setDocsArray(filteredDocsArray)
+   if(filteredDocsArray.length === 0){
+    docInputRef.current.value = '';
+   }
+  }
+
   useEffect(() => {
 // Focus the input field when the component mounts
     inputRef.current.focus();
@@ -349,6 +438,25 @@ const handleKeyPress = (event) => {
 
   return (
     <InputContainer>
+     <Menu
+        id="basic-menu"
+        anchorEl={anchorEl}
+        open={openOptions}
+        onClose={handleCloseOptions}
+        MenuListProps={{
+          'aria-labelledby': 'basic-button',
+        }}
+      >
+        <MenuItem onClick={()=>{
+        handleCloseOptions();
+        document.querySelector('input[type="file"]').click()
+        }}>Photos</MenuItem>
+        <MenuItem onClick={()=>{
+          docInputRef.current.click()
+          handleCloseOptions();
+        }}>Document</MenuItem>
+        <MenuItem onClick={handleCloseOptions}>Sketch</MenuItem>
+      </Menu>
     <Modal
         open={open}
         onClose={handleClose}
@@ -369,6 +477,25 @@ const handleKeyPress = (event) => {
           <Sketch/>
         </Box>
       </Modal>
+      <Modal
+        open={openPdf}
+        onClose={handleClosePdf}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+         <FileUploadComponent docElement={selectedFilePdf}/>
+        </Box>
+      </Modal>
+      {/* <UploadButton onClick={() => document.querySelector('input[type="file"]').click()}>
+        Select Image
+      </UploadButton> */}
+      <SendButton 
+         aria-controls={open ? 'basic-menu' : undefined}
+        aria-haspopup="true"
+        aria-expanded={open ? 'true' : undefined}
+        onClick={handleClick}
+      >Sketch</SendButton>
       <InputField 
         type="text" 
         value={inputValue} 
@@ -379,14 +506,17 @@ const handleKeyPress = (event) => {
         // rows={Math.min(30, Math.ceil((inputValue.length + 1) / 30))} // Adjust rows based on content length
         rows={Math.min(15, inputValue.split('\n').length)} 
       />
-      <FileInput ref={fileInputRef} type="file" onChange={handleChange1} multiple />
-      <UploadButton onClick={() => document.querySelector('input[type="file"]').click()}>
-        Select Image
-      </UploadButton>
+      <FileInput  accept="image/*" ref={fileInputRef} type="file" onChange={handleChange1} multiple />
+      <FileInput  
+        accept=".doc, .docx, application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/plain, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation, application/vnd.oasis.opendocument.text, application/vnd.oasis.opendocument.spreadsheet, application/vnd.oasis.opendocument.presentation, text/csv, application/json, application/xml, application/rtf, application/x-rtf, text/rtf, text/html, text/xml, text/richtext, text/enriched, application/x-iwork-pages-sffpages, application/x-iwork-keynote-sffkey, application/x-iwork-numbers-sffnumbers"
+        ref={docInputRef} type="file" onChange={handleChange2} multiple />
+
       <UploadImageCont>
       <ButtonCont>
       {imageArray.length > 0 && <UploadButton onClick={handleUpload}>Upload</UploadButton>}
       {imageArray.length > 0 && <UploadButton onClick={()=>{clearFileInput()}}>Discard</UploadButton>}
+      {docsArray.length > 0 && <UploadButton onClick={handleUploadDoc}>Upload</UploadButton>}
+      {docsArray.length > 0 && <UploadButton onClick={()=>{clearDocInput()}}>Discard</UploadButton>}
       </ButtonCont>
       {/* {imageUrl && <ImagePreview src={imageUrl} alt="Selected Image" />}  */}
       {imageArray.length > 0  && <ImageBlocks onClick={handleOpen}>
@@ -407,8 +537,26 @@ const handleKeyPress = (event) => {
         )
       }
       </ImageBlocks>}
+      {docsArray.length > 0  && <ImageBlocks>
+      {
+        docsArray.length > 0 && (
+          <>
+          {
+            docsArray.map((docElement)=>{
+              return  (
+                <>
+              <ImagePreview src={'/images/doc.webp'} alt="Selected Image" onClick={()=>{handleOpenPdf(docElement)}}/>
+              <Closeicon onClick={(e)=>{e.stopPropagation(); removeDoc(docElement)}}/>
+              </>
+              )
+            })
+          }
+          </>
+        )
+      }
+      </ImageBlocks>}
       </UploadImageCont>
-      <SendButton onClick={handleOpen2}>Sketch</SendButton>
+      {/* <SendButton onClick={handleOpen2}>Sketch</SendButton> */}
       <SendButton onClick={()=>{sendMessage("text")}}>Send</SendButton>
     </InputContainer>
   );

@@ -268,7 +268,7 @@ export default function SideBar({ widthVal }) {
                        <div style={{display:'flex',flexDirection:'column'}}>
                        <Typography variant="h5" component="h2" sx={{color:`${selectedUser === user.userId ? "white" : "black"}`}} style={{padding:'0px',margin:'0px'}}>{user.name}</Typography>
                         {
-                           user[currentUserDocumentId] && <LastMez widthVal={widthVal}>{user[currentUserDocumentId].lastMez}</LastMez>
+                           user[currentUserDocumentId] && <LastMez widthval={widthVal}>{user[currentUserDocumentId].lastMez}</LastMez>
                         }
                        </div>
                        {user[currentUserDocumentId]?.time && <LastMezTime>{getLastMessageTime(user[currentUserDocumentId].time)}</LastMezTime>}
@@ -377,8 +377,9 @@ const LastMez = styled.div`
     text-overflow: ellipsis;
     max-height: 25px;
     white-space: nowrap;
-    width: ${props =>  parseInt(props?.widthVal.split('%')[0]) - 15 }%;
+    width: ${props =>  parseInt(props?.widthval.split('%')[0])+50 }%;
     min-width: 30px;
+    /* width: 100%; */
 `;
 
 

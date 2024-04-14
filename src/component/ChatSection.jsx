@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState,memo  } from 'react';
+import React, { useEffect, useRef, useState,memo, Fragment  } from 'react';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
 import { getFirestore, doc, updateDoc,getDoc, setDoc, collection } from 'firebase/firestore';
@@ -24,6 +24,10 @@ import Prismjs from './prismjs';
 import VideoCallIcon from '@mui/icons-material/VideoCall';
 import CallIcon from '@mui/icons-material/Call';
 import IconButton from '@mui/material/IconButton';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import DocViewerComp from './DocViewer';
 
 
 const ChatSectionContainer = styled.div`
@@ -63,14 +67,31 @@ const ChatSection = memo (({chatData,widthVal}) => {
     const currentUserChatInfo = useSelector(state => state.userRdx.currentChatInfo);
     const [showArrow,setShowArrow] = useState(false);
     const [modalImageUrl,setModalImageUrl] = useState('');
+    const [anchorEl, setAnchorEl] = useState(null);
+    const [docUrl,setDocUrl] = useState();
+    const [modalState,setModalState] = useState('image')
+    const selectedChatIndex = useRef(null);
     const currentUserImageUrl = useSelector(state => state.userRdx.userImageUrl); 
     const currentChatUserInfo = useSelector(state => state.userRdx.currentChatUserInfo);
     const currentUserDocumentId = useSelector(state => state.userRdx.currentUserDocumentId);
     let chatId = useSelector(state => state.chatRdx.chatId); 
+    const [contextPostion,setContextPostion] = useState({left:0,top:0})
+
+    const [anchorElContext, setAnchorElContext] = useState(null);
+    const openContext = Boolean(anchorElContext);
+    const handleClickContext = (event,index) => {
+      handleGetPosition(event);
+      setAnchorElContext(event.currentTarget);
+      selectedChatIndex.current = index;
+      console.log(selectedChatIndex.current,chatData.messages[selectedChatIndex.current])
+    };
+    const handleCloseContext = () => {
+      setAnchorElContext(null);
+    };
+
     // console.log(currentUserChatInfo,'sdsd',currentUser,currentUserDocumentId) 
     // console.log(currentChatUserInfo,'currentChatUserInfo',currentUserDocumentId)
-console.log(chatData,'chatData')
-    const [anchorEl, setAnchorEl] = useState(null);
+    //  console.log(chatData,'chatData')
 
     const handleClickPop = (event) => {
       if (event && event.currentTarget) {
@@ -96,7 +117,14 @@ console.log(chatData,'chatData')
     const handleClose = () => {
       setOpen(false);
       setModalImageUrl("")
+      setModalState("image");
     }
+
+    const handleGetPosition = (event) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setContextPostion({ left: rect.left, top: rect.top });
+    };
+  
 
     const openHalfSizeWindow = (id) => {
       // Get the current window's width and height
@@ -138,6 +166,57 @@ console.log(chatData,'chatData')
         console.error('Error updating document:', error);
       }
     };
+ const handleCopy = (event)=>{
+  handleCloseContext(event);
+  const text = chatData.messages[selectedChatIndex.current].text;
+  navigator.clipboard.writeText(text)
+  .then(() => console.log('Text copied to clipboard:', text))
+  .catch((err) => console.error('Failed to copy:', err));
+ }
+
+ const handleDelete = async(event)=>{
+  handleCloseContext(event);
+  const chatDocRef = doc(firestore, 'chats', chatId);
+  const chatDocSnapshot = await getDoc(chatDocRef);
+  let currentMessages = chatDocSnapshot.data().messages || []; // Initialize as empty array if undefined
+  if (!Array.isArray(currentMessages)) {
+    currentMessages = [];
+  }
+  const updatedMessages = JSON.parse(JSON.stringify(chatData.messages));
+  updatedMessages[selectedChatIndex.current].text = "Message deleted";
+  updatedMessages[selectedChatIndex.current].isMessageDeleted = true;
+  console.log(updatedMessages[selectedChatIndex.current]);
+  
+  await updateDoc(chatDocRef, { messages: updatedMessages });
+  if(selectedChatIndex.current === chatData.messages.length-1){
+    const currentTime = Date.now();
+    const currentUserDocRef = doc(firestore, 'users', currentUserDocumentId);
+    const otherUserDocRef = doc(firestore, 'users', currentUserChatInfo.id);
+
+    const [currentUserDoc, otherUserDoc] = await Promise.all([
+      getDoc(currentUserDocRef),
+      getDoc(otherUserDocRef)
+    ]);
+    const otherUserData = otherUserDoc.data();
+    const unreadMessageCountForOtherUser = otherUserData[currentUserDocumentId]?.unreadMezCount || 0;
+    updateLastMessage(currentUserDocumentId,{
+      [currentUserChatInfo.id] : {lastMez : "Message deleted", by : 'me',  time: currentTime}
+    })
+    updateLastMessage(currentUserChatInfo.id,{
+      [currentUserDocumentId] : {lastMez :  "Message deleted", by : 'otherUser',unreadMezCount:  (unreadMessageCountForOtherUser), time: currentTime}
+    })
+  }
+
+ }
+
+ const showDoc = (doc)=>{
+  console.log(doc)
+  setOpen(true);
+  setModalState("doc")
+  // setDocUrl('http://localhost:5000/getPdf?url='+doc.docUrl)
+  setDocUrl('https://chat-app-doc-backend.vercel.app/getPdf?url='+doc.docUrl)
+ }
+
 
  const sendMessage = async (messagetype) => {
   // Generate unique message ID using uuid()
@@ -279,7 +358,21 @@ console.log(chatData,'chatData')
   
   return (
     <ChatSectionContainer ref={chatConatinerRef}>
-      
+       <CustomMenu
+        id="basic-menu"
+        anchorEl={anchorElContext}
+        open={openContext}
+        onClose={handleCloseContext}
+        MenuListProps={{
+          'aria-labelledby': 'basic-button',
+        }}
+        customLeft={`${contextPostion.left}px`}
+        customTop={`${contextPostion.top}px`}
+      >
+        <MenuItem onClick={(event)=>{handleCopy(event)} }>Copy</MenuItem>
+        <MenuItem onClick={(event)=>{handleDelete(event)}}>Delete</MenuItem>
+        <MenuItem onClick={handleCloseContext}>Updated</MenuItem>
+      </CustomMenu>
        <Modal
                  open={open}
                  onClose={handleClose}
@@ -289,8 +382,15 @@ console.log(chatData,'chatData')
                   <Box sx={style}>
                   {/* <img src={currentChatUserInfo.imageUrl} height='400px'/> */}
                   {/* <MyImageZoomComponent src={currentChatUserInfo.imageUrl}/> */}
-                  <ZoomPinch src={modalImageUrl}/>
+                  {
+                  modalState === 'image' ? 
+                    <>
+                    <ZoomPinch src={modalImageUrl}/>
                       <h2>{currentChatUserInfo.name}</h2>
+                    </>
+                      :
+                    <DocViewerComp docUrl={docUrl}/>
+                  }
                  </Box>
                </Modal>
         <PopOverElement
@@ -323,16 +423,24 @@ console.log(chatData,'chatData')
      {
         chatData &&
        chatData.messages && 
-       chatData.messages.map((message)=>{
+       chatData.messages.map((message,index)=>{
         return(
-            <>
+            <Fragment>
             { !message?.isCode && message.messagetype !=="vdieoCall" && message.messagetype !=="audioCall" &&
                (
                 
                   currentUser.uid === message.senderId ? (<><ChatP key={message.messageId}>
                     {message?.messagetype==='image' ? (
                        <ImageBlock4  onClick={()=>{handleOpen(message.imageUrl)}}><img src={message.imageUrl} width='120px'/></ImageBlock4>
-                    ) : (message.text)}
+                    ) : (message.messagetype==='doc'? (<img onClick={()=>{showDoc(message)}} src={'/images/doc.webp'} width='120px'/>) : (message.text))}
+                     <ThreeDots
+                             id="basic-button"
+                             aria-controls={open ? 'basic-menu' : undefined}
+                             aria-haspopup="true"
+                             aria-expanded={open ? 'true' : undefined}
+                             onClick={(event)=>{handleClickContext(event,index)}}
+                     
+                     />
                     <MessageStatus style={{backgroundColor:`${message.messageStatus !== 'sent' ? "#69b8d2" : ""}`}}>
                     {
                       message.messageStatus === 'sent' ?     <Tooltip title="Unseen"><DoneIcon sx={{width:'16px'}}/></Tooltip> : <Tooltip title="Seen"><DoneAllIcon sx={{width:'16px'}}/></Tooltip>
@@ -346,7 +454,14 @@ console.log(chatData,'chatData')
                      <ChatPother key={message.messageId}>
                       {message?.messagetype==='image' ? (
                         <ImageBlock4  onClick={()=>{handleOpen(message.imageUrl)}}><img src={message.imageUrl} width='120px'/></ImageBlock4>
-                      ) : (message.text)}
+                      ) : (message.messagetype==='doc'? (<img onClick={()=>{showDoc(message)}} src={'/images/doc.webp'} width='120px'/>) : (message.text))}
+                      <ThreeDots2
+                          id="basic-button"
+                          aria-controls={open ? 'basic-menu' : undefined}
+                          aria-haspopup="true"
+                          aria-expanded={open ? 'true' : undefined}
+                          onClick={handleClickContext}
+                      />
                       {
                     currentChatUserInfo.imageUrl ? (<ImageBlock2 onClick={()=>{handleOpen(currentChatUserInfo.imageUrl)}}><img src={currentChatUserInfo.imageUrl} height='30px'/></ImageBlock2>) : ( <ImageBlock2 style={{right:"-30px"}}><AccountCircleIcon sx={{fontSize:'30px'}}/></ImageBlock2>)
                     }
@@ -380,7 +495,7 @@ console.log(chatData,'chatData')
               ( message.messagetype ==="vdieoCall" || message.messagetype ==="audioCall" ) && 
                <CallElement>{message.senderId === currentUserChatInfo.userId ? currentChatUserInfo.name : "You"}{" called "}{message.senderId === currentUserChatInfo.userId ? "you" : currentChatUserInfo.name}</CallElement>
             }
-            </>
+            </Fragment>
         )
     })
      }
@@ -425,6 +540,16 @@ const ChatP = styled.div`
     @media screen and (max-width: 700px) {
       margin-left: 70%;
     }
+    .css-i4bv87-MuiSvgIcon-root {
+    cursor: pointer;
+    opacity: 0;
+  }
+  &:hover{
+    .css-i4bv87-MuiSvgIcon-root {
+    cursor: pointer;
+    opacity: 1;
+  }
+  }
 `;
 const ChatPCode = styled.div`
     margin-left: 45%;
@@ -456,6 +581,16 @@ const ChatPother = styled.div`
     background-color: #dbb5b5;
     padding: 6px;
     position: relative;
+    .css-i4bv87-MuiSvgIcon-root {
+    cursor: pointer;
+    opacity: 0;
+  }
+  &:hover{
+    .css-i4bv87-MuiSvgIcon-root {
+    cursor: pointer;
+    opacity: 1;
+  }
+  }
 `
 const ChatPotherCode = styled.div`
     width: 50%;
@@ -583,3 +718,19 @@ const CallElement = styled.div`
   padding: 5px 10px;
   border-radius: 4px;
 `
+const ThreeDots = styled(MoreVertIcon)`
+  position: absolute;
+  left: -25px;
+
+`
+const ThreeDots2 = styled(MoreVertIcon)`
+  position: absolute;
+  right: -25px;
+
+`
+const CustomMenu = styled(Menu)`
+  .css-3dzjca-MuiPaper-root-MuiPopover-paper-MuiMenu-paper {
+    left: ${({ customLeft }) => customLeft || '100px'} !important;
+    top: ${({ customTop }) => customTop || '100px'} !important;
+  }
+`;
