@@ -8,6 +8,8 @@ import {app} from './firebase';
 import VideoCall from './pages/VideoCall';
 import 'prismjs/themes/prism.css';
 import { ThemeProvider } from './ThemeContext';
+import MyEditor from './pages/Quill';
+import DocViewerComp from './component/DocViewer';
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/videoCall" element={<VideoCall />} />
+      <Route path="/quill" element={<MyEditor />} />
+      <Route path="/doc" element={<DocViewerComp />} />
     </Routes>
     </ThemeProvider>
     </>
